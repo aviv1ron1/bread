@@ -10,6 +10,17 @@ var api = express();
 app.use("/api", api);
 app.use(express.static(path.join(__dirname, 'public')));
 
+function timeToStr(t) {
+	if(t/60 >= 1) {
+		var s = (t/60).toFixed(0) + " hours";
+		if(t%60 > 0) {
+			s += " and " + t%60 + " minutes";
+		}
+		return s;
+	}
+	return t +  " minutes";
+}
+
 function caculateAmount(finalAmount, breadType) {
     return (JSON.parse(JSON.stringify(matconim[breadType].ingredients))).map((ing) => {
         ing.amount = (ing.amount * finalAmount).toFixed(0);
@@ -27,14 +38,15 @@ function calculateTimesFromStart(startTime, breadType) {
         var t = matcon[i];
         ret.push({
             name: t.name,
-            time: moment(start).format("HH:mm"),
-            duration: t.time
+            from: moment(start).format("HH:mm"),
+            to: start.add(t.time, 'm').format("HH:mm"),
+            duration: timeToStr(t.time)
         })
-        start.add(t.time, 'm')
+        
     }
     ret.push({
-        name: "מוכן",
-        time: start.format("HH:mm")
+        name: "ready",
+        from: start.format("HH:mm")
     })
     return ret;
 }
@@ -46,16 +58,16 @@ function calculateTimesFromEnd(endTime, breadType) {
     var matcon = matconim[breadType].times;
     var ret = []
     ret.push({
-        name: "מוכן",
-        time: moment(end).format("HH:mm")
+        name: "ready",
+        from: moment(end).format("HH:mm")
     })
     for (var i = matcon.length - 1; i > -1; i--) {
         var t = matcon[i];
-        end.subtract(t.time, "m");
         ret.push({
             name: t.name,
-            time: moment(end).format("HH:mm"),
-            duration: t.time
+            to: moment(end).format("HH:mm"),
+            from: end.subtract(t.time, "m").format("HH:mm"),
+            duration: timeToStr(t.time)
         })
     }
 
