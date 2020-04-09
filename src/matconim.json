@@ -3,19 +3,22 @@
         "img": "sourdough.jpg",
         "ingredients": [{
             "name": "flour",
-            "amount": 0.533
+            "amount": 0.4
+        }, {
+            "name": "oil",
+            "amount": 0.015
         }, {
             "name": "salt",
-            "amount": 0.0115
+            "amount": 0.01
         }, {
             "name": "water",
-            "amount": 0.345
+            "amount": 0.28
         }, {
             "name": "starter",
-            "amount": 0.082
+            "amount": 0.2
         }],
         "temprature": 250,
-        "weight": 200,
+        "weight": 890,
         "times": [{
             "name": "primary kneading",
             "time": 3
@@ -55,22 +58,22 @@
         "img": "baguet.jpg",
         "ingredients": [{
             "name": "flour",
-            "amount": 0.4
+            "amount": 0.533
         }, {
-            "name": "oil",
-            "amount": 0.015
+            "name": "yeast",
+            "amount": 0.0029
         }, {
             "name": "salt",
-            "amount": 0.01
+            "amount": 0.0115
         }, {
             "name": "water",
-            "amount": 0.28
+            "amount": 0.345
         }, {
             "name": "starter",
-            "amount": 0.2
+            "amount": 0.082
         }],
         "temprature": 250,
-        "weight": 890,
+        "weight": 200,
         "times": [{
             "name": "primary kneading",
             "time": 3
