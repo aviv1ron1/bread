@@ -143,6 +143,7 @@ function initWeight() {
 }
 
 $(document).ready(() => {
+    $("nav").loadTemplate("templates/header.html");
     setStartTime();
     initNumLoafs();
     initWeight();

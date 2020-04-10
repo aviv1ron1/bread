@@ -21,15 +21,17 @@
         "weight": 890,
         "times": [{
             "name": "primary kneading",
-            "time": 3
+            "time": 3,
+            "description": "flour and water and starter"
         }, {
             "name": "autolyse",
             "time": 40
         }, {
             "name": "main kneading",
-            "time": 5
+            "time": 5,
+            "description": "near the end add the salt"
         }, {
-            "name": "bench",
+            "name": "rest",
             "time": 30
         }, {
             "name": "fold",
@@ -44,17 +46,86 @@
             "name": "rest",
             "time": 90
         }, {
-            "name": "shaping",
+            "name": "pre shaping",
             "time": 3
         }, {
-            "name": "bench",
-            "time": 90
+            "name": "rest",
+            "time": 20
+        }, {
+            "name": "final shaping",
+            "time": 3
+        }, {
+            "name": "rest",
+            "time": 70
         }, {
             "name": "baking",
             "time": 35
         }]
     },
-    "classic baguette": {
+    "white sourdough": {
+        "img": "sourdough.jpg",
+        "ingredients": [{
+            "name": "flour",
+            "amount": 0.425
+        }, {
+            "name": "oil",
+            "amount": 0.015
+        }, {
+            "name": "salt",
+            "amount": 0.01
+        }, {
+            "name": "water",
+            "amount": 0.24
+        }, {
+            "name": "starter",
+            "amount": 0.21
+        }],
+        "temperature": 250,
+        "weight": 890,
+        "times": [{
+            "name": "primary kneading",
+            "time": 3,
+            "description": "flour and water and starter"
+        }, {
+            "name": "autolyse",
+            "time": 40
+        }, {
+            "name": "main kneading",
+            "time": 5,
+            "description": "near the end add the salt"
+        }, {
+            "name": "rest",
+            "time": 30
+        }, {
+            "name": "fold",
+            "time": 1
+        }, {
+            "name": "rest",
+            "time": 30
+        }, {
+            "name": "fold",
+            "time": 1
+        }, {
+            "name": "rest",
+            "time": 90
+        }, {
+            "name": "pre shaping",
+            "time": 3
+        }, {
+            "name": "rest",
+            "time": 20
+        }, {
+            "name": "final shaping",
+            "time": 3
+        }, {
+            "name": "rest",
+            "time": 70
+        }, {
+            "name": "baking",
+            "time": 35
+        }]
+    },
+    "baguette with sourdough": {
         "img": "baguet.jpg",
         "ingredients": [{
             "name": "flour",
@@ -76,13 +147,15 @@
         "weight": 200,
         "times": [{
             "name": "primary kneading",
-            "time": 3
+            "time": 3,
+            "description": "flour and water only"
         }, {
             "name": "autolyse",
             "time": 90
         }, {
             "name": "main kneading",
-            "time": 6
+            "time": 6,
+            "description": "near the end add starter salt and yeast"
         }, {
             "name": "rest",
             "time": 60
@@ -96,13 +169,13 @@
             "name": "initial shaping",
             "time": 5
         }, {
-            "name": "bench",
+            "name": "rest",
             "time": 30
         }, {
             "name": "final shaping",
             "time": 5
         }, {
-            "name": "bench",
+            "name": "rest",
             "time": 30
         }, {
             "name": "baking",

@@ -4,6 +4,7 @@
   "description": "a nodejs backend website for calculating times and amounts of bread baking",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "aviv1ron1@gmail.com",

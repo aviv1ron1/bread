@@ -4,37 +4,38 @@
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="css/nouislider.css">
+    <link type="text/css" rel="stylesheet" href="css/materialize.min.css"  media="screen,projection"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <title>bread!</title>
   </head>
   <body>
-    <h1>Choose Bread Type</h1>
+    <nav></nav>
+    <h3>Choose Bread Type:</h3>
     <div class="container">
       <div class="row" id="chooseBread"></div>
     </div>
     
     <script src="http://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="js/materialize.min.js"></script>
     <script src="/js/jquery.loadTemplate.min.js" type="text/javascript"></script>
     <script type="text/javascript">
     $(document).ready(() => {
-        console.log("ready")
+        $("nav").loadTemplate("templates/header.html");
         $.get("/api/bread", (data) => {
             console.log("api handler")
-            data.forEach((item, index) => {
-                var d = $("<div>").loadTemplate("templates/card.html", {
-                  name: item.name,
-                  img: '/img/' + item.img
-                });
-                d.attr("data-item",item.name);
-                d.click((e) => {
-                  window.location.href = "/bread.html?name=" + $(e.currentTarget).attr("data-item");
-                });
-                $("#chooseBread").append(d);
-            })
-
+            $("#chooseBread").loadTemplate("templates/card.html", data.map(i => {
+                return {
+                    img: "/img/" + i.img,
+                    name: i.name,
+                    href: "/bread.html?name=" + i.name
+                }
+            }));
+            // d.attr("data-item",item.name);
+            // d.click((e) => {
+            //   window.location.href = "/bread.html?name=" + $(e.currentTarget).attr("data-item");
+            // });
+            //$("#chooseBread").append(d);
         })
     })
     </script>
