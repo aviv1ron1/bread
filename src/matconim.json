@@ -181,5 +181,67 @@
             "name": "baking",
             "time": 25
         }]
+    }, "sourdough pan de mie": {
+        "img": "pandemei.jpg",
+        "ingredients": [{
+            "name": "flour",
+            "amount": 0.532
+        }, {
+            "name": "water",
+            "amount": 0.24
+        }, {
+            "name": "milk",
+            "amount": 0.076
+        }, {
+            "name": "butter",
+            "amount": 0.0532
+        }, {
+            "name": "starter",
+            "amount": 0.152
+        }],
+        "temperature": 220,
+        "weight": 660,
+        "times": [{
+            "name": "primary kneading",
+            "time": 3,
+            "description": "flour water and milk"
+        }, {
+            "name": "autolyse",
+            "time": 20
+        }, {
+            "name": "main kneading",
+            "time": 5,
+            "description": "near the end add sourdough, butter and salt"
+        }, {
+            "name": "rest",
+            "time": 30
+        }, {
+            "name": "fold",
+            "time": 1
+        }, {
+            "name": "rest",
+            "time": 30
+        }, {
+            "name": "fold",
+            "time": 1
+        }, {
+            "name": "rest",
+            "time": 90
+        }, {
+            "name": "pre shaping",
+            "time": 3
+        }, {
+            "name": "rest",
+            "time": 20
+        }, {
+            "name": "final shaping",
+            "time": 3
+        }, {
+            "name": "rest",
+            "time": 70
+        }, {
+            "name": "baking",
+            "time": 35
+        }]
     }
 }
