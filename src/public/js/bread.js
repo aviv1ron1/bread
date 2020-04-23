@@ -11,16 +11,15 @@ function calculateWeight() {
                 weight: $("#totalWeightBadge").text()
             },
             success: (matcon) => {
-                console.log(matcon);
                 $("#matcon").loadTemplate("/templates/ingredient.html", matcon)
             }
         })
     }
 }
 
-function calculateTimes(h,m) {
+function calculateTimes(h, m) {
     var t = $('.timepicker').val();
-    if(h) {
+    if (h) {
         t = h + ":" + m;
     }
     var from = $("#startOrEnd").prop("checked") ? "end" : "start";
@@ -45,10 +44,10 @@ function setStartTime() {
     minutes += 10;
     var mod = minutes % 5;
     minutes -= mod;
-    if (minutes % 60 > 0) {
+    if (minutes / 60 > 1) {
         minutes %= 60;
         hour += 1;
-        if (hour % 24 > 0) {
+        if (hour / 24 > 1) {
             hour %= 24;
         }
     }
@@ -152,3 +151,4 @@ $(document).ready(() => {
     })
     $("#title").text(name);
 })
+
