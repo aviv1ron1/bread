@@ -243,5 +243,120 @@
             "name": "baking",
             "time": 35
         }]
+    }, "Pita": {
+        "img": "pita.jpg",
+        "ingredients": [{
+            "name": "flour",
+            "amount": 0.58
+        }, {
+            "name": "oil",
+            "amount": 0.0156
+        }, {
+            "name": "salt",
+            "amount": 0.01
+        }, {
+            "name": "water",
+            "amount": 0.4
+        }, {
+            "name": "sugar",
+            "amount": 0.01
+        }, {
+            "name": "yeast",
+            "amount": 0.01
+        }],
+        "temperature": 250,
+        "weight": 120,
+        "times": [{
+            "name": "primary kneading",
+            "time": 3,
+            "description": "flour and water"
+        }, {
+            "name": "autolyse",
+            "time": 20
+        }, {
+            "name": "main kneading",
+            "time": 5,
+            "description": "near the end add the salt, sugar, oil and yeast"
+        }, {
+            "name": "rest",
+            "time": 30
+        }, {
+            "name": "fold",
+            "time": 1
+        }, {
+            "name": "rest",
+            "time": 30
+        }, {
+            "name": "pre shaping",
+            "time": 10
+        }, {
+            "name": "rest",
+            "time": 20
+        }, {
+            "name": "final shaping",
+            "time": 10
+        }, {
+            "name": "baking",
+            "time": 5
+        }]
+    }, "Sourdough Pita": {
+        "img": "pita.jpg",
+        "ingredients": [{
+            "name": "flour",
+            "amount": 0.527
+        }, {
+            "name": "oil",
+            "amount": 0.0156
+        }, {
+            "name": "salt",
+            "amount": 0.01
+        }, {
+            "name": "water",
+            "amount": 0.353
+        }, {
+            "name": "sugar",
+            "amount": 0.01
+        }, {
+            "name": "yeast",
+            "amount": 0.01
+        }, {
+            "name": "starter (100% hydration)",
+            "amount": 0.1
+        }],
+        "temperature": 250,
+        "weight": 120,
+        "times": [{
+            "name": "primary kneading",
+            "time": 3,
+            "description": "flour, water and starter"
+        }, {
+            "name": "autolyse",
+            "time": 20
+        }, {
+            "name": "main kneading",
+            "time": 5,
+            "description": "near the end add the salt, sugar, oil and yeast"
+        }, {
+            "name": "rest",
+            "time": 30
+        }, {
+            "name": "fold",
+            "time": 1
+        }, {
+            "name": "rest",
+            "time": 30
+        }, {
+            "name": "pre shaping",
+            "time": 10
+        }, {
+            "name": "rest",
+            "time": 20
+        }, {
+            "name": "final shaping",
+            "time": 10
+        }, {
+            "name": "baking",
+            "time": 5
+        }]
     }
 }
