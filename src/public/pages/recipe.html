@@ -1,0 +1,66 @@
+<div class="container-lg mt-1">
+	<div class="row atitle">
+		<div class="col">
+			<h2 class="text-center">{{root.data.name}}</h2>
+		</div>
+	</div>
+	<div class="row ahead">
+		<div class="col-md-4">
+			<img class="img-fluid rounded mx-auto d-block" ng-src="/img/{{root.data.img}}">
+		</div>
+		<div class="col-md-8">
+			<form>
+				<div class="row pb-5">
+					<div class="col">
+						<label for="numLoafs">Number of loafs:</label>
+						<span id="numLoafsBadge" class="badge badge-pill badge-primary">{{root.numLoafs}}</span>
+						<div class="section">
+							<div id="numLoafs"></div>
+						</div>
+					</div>
+				</div>
+				<div class="row pb-5">
+					<div class="col">
+						<label for="weight">Loaf Weight:</label>
+						<span class="badge badge-pill badge-primary">{{root.weight}}</span>
+						<div class="section">
+							<div id="weight"></div>
+						</div>
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+	<div class="row aweights mt-2">
+		<div class="col">
+			<div class="container-md">
+				<div class="row">
+					<div class="col">
+						<h3 class="text-center">Weights (grams)</h3>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col">
+						<h5>Total Weight: <span class="badge badge-pill badge-primary">{{root.weight * root.numLoafs}}</span></h5>
+					</div>
+					<div class="col text-right">
+						expert mode:
+						<switch d="root.expertMode" edit="true" on="on" off="off"></switch>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col">
+						<ul class="list-group" ng-repeat="ingred in root.weights">
+					  		<ingredient data="ingred" expert-mode="root.expertMode">
+						</ul>	
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="row atimes">
+		<div class="col">
+			
+		</div>
+	</div>
+</div>

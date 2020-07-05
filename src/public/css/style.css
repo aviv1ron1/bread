@@ -1,0 +1,23 @@
+.clickable {
+	cursor: pointer;
+}
+
+.ahead {
+	/*background-color: #f4ebff;*/
+}
+
+.atitle {
+	/*background-color: #7d6b4d;*/
+}
+
+.aweights {
+	background-color: #eef0d6;
+}
+
+
+.container-md {
+  margin-right: auto;
+  margin-left: auto;
+  max-width: 660px; 
+}
+
