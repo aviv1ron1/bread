@@ -1,77 +1,96 @@
 const moment = require('moment');
-const matconim = require('./matconim.json');
 const express = require('express');
 const path = require('path');
+const nou = require('nou');
+const fs = require('fs');
+const bunyan = require('bunyan');
+
+const ItemNotFoundError = require('./errors/item-not-found-error.js');
+const Ajv = require('ajv');
+const Mailer = require('mailer');
+var emailValidator = require("email-validator");
+const PasswordPolicy = require('./password-policy.js');
+const calculator = require('./modules/calculator.js');
+const Auth = require('./modules/auth.js');
+const Db = require('./db.js');
+
+const registerSchema = require('./schemas/register-schema.json');
+const matconSchema = require('./schemas/matcon-schema.json');
+const reviewSchema = require('./schemas/review-schema.json');
+const userSchema = require('./schemas/user-schema.json');
+
+const config = require('./creds.json');
+
+
+var configuration = {
+    "pre-register-expiration-days": 3,
+    "expiration-job-hours": 12,
+    logger: {
+        name: "bread",
+        streams: [{
+            level: 'debug',
+            stream: process.stdout
+        }]
+    }
+}
+
+//override default config from file:
+for (let [key, value] of Object.entries(config.main)) {
+    configuration[key] = value;
+}
+
+var services = {}
+
+services.ajv = new Ajv();
+services.ajv.addSchema(registerSchema, "register");
+services.ajv.addSchema(matconSchema, "matcon");
+services.ajv.addSchema(reviewSchema, "review");
+services.ajv.addSchema(userSchema, "user");
+
+
+var logger = bunyan.createLogger(config.logger);
+services.logger = logger;
+services.db = new Db(config, services);
+services.passwordPolicy = new PasswordPolicy(config);
+services.mailer = new Mailer(config);
+services.auth = new Auth(config, services);
+
+//delete old non verified email registrations
+setInterval(() => {
+    services.db.deleteExpiredPreRegisters(configuration["pre-register-expiration-days"], (err, deleted) => {
+        if (err) {
+            if (err instanceof ItemNotFoundError) {
+                logger.info("pre-register expiration job ran. no results");
+            } else {
+                logger.error({
+                    err: err
+                }, "there was an error in the re-register expiration job");
+            }
+        } else {
+            logger.info("re-register expiration job succesfull. delete " + deleted);
+        }
+    })
+});
 
 var app = express()
 
 var api = express();
 
+var login = express();
+
 app.use("/api", api);
+api.use("/identity", login);
 app.use(express.static(path.join(__dirname, 'public')));
 
 function timeToStr(t) {
-	if(t/60 >= 1) {
-		var s = (t/60).toFixed(0) + " hours";
-		if(t%60 > 0) {
-			s += " and " + t%60 + " minutes";
-		}
-		return s;
-	}
-	return t +  " minutes";
-}
-
-function caculateAmount(finalAmount, breadType) {
-    return (JSON.parse(JSON.stringify(matconim[breadType].ingredients))).map((ing) => {
-        ing.amount = (ing.amount * finalAmount).toFixed(0);
-        return ing;
-    })
-}
-
-function calculateTimesFromStart(startTime, breadType) {
-    var start = moment();
-    start.hour(startTime.split(":")[0]);
-    start.minute(startTime.split(":")[1]);
-    var matcon = matconim[breadType].times;
-    var ret = []
-    for (var i = 0; i < matcon.length; i++) {
-        var t = matcon[i];
-        ret.push({
-            name: t.name,
-            from: moment(start).format("HH:mm"),
-            to: start.add(t.time, 'm').format("HH:mm"),
-            duration: timeToStr(t.time)
-        })
-        
+    if (t / 60 >= 1) {
+        var s = (t / 60).toFixed(0) + " hours";
+        if (t % 60 > 0) {
+            s += " and " + t % 60 + " minutes";
+        }
+        return s;
     }
-    ret.push({
-        name: "ready",
-        from: start.format("HH:mm")
-    })
-    return ret;
-}
-
-function calculateTimesFromEnd(endTime, breadType) {
-    var end = moment();
-    end.hour(endTime.split(":")[0]);
-    end.minute(endTime.split(":")[1]);
-    var matcon = matconim[breadType].times;
-    var ret = []
-    ret.push({
-        name: "ready",
-        from: moment(end).format("HH:mm")
-    })
-    for (var i = matcon.length - 1; i > -1; i--) {
-        var t = matcon[i];
-        ret.push({
-            name: t.name,
-            to: moment(end).format("HH:mm"),
-            from: end.subtract(t.time, "m").format("HH:mm"),
-            duration: timeToStr(t.time)
-        })
-    }
-
-    return ret.reverse();
+    return t + " minutes";
 }
 
 
@@ -104,11 +123,10 @@ api.get("/bread/:breadType", (req, res) => {
 
 api.get("/bread/:breadType/times", (req, res) => {
     if (matconim[req.params.breadType]) {
-    	if(req.query.from == "start") {
-    		res.json(calculateTimesFromStart(req.query.time, req.params.breadType));
-    	}
-        else {
-        	res.json(calculateTimesFromEnd(req.query.time, req.params.breadType));
+        if (req.query.from == "start") {
+            res.json(calculator.calculateTimesFromStart(req.query.time, req.params.breadType));
+        } else {
+            res.json(calculator.calculateTimesFromEnd(req.query.time, req.params.breadType));
         }
     } else {
         res.status(404).end();
@@ -117,12 +135,34 @@ api.get("/bread/:breadType/times", (req, res) => {
 
 api.get("/bread/:breadType/weight", (req, res) => {
     if (matconim[req.params.breadType]) {
-        res.json(caculateAmount(req.query.weight, req.params.breadType));
+        res.json(calculator.caculateAmount(req.query.weight, req.params.breadType));
     } else {
         res.status(404).end();
     }
 });
 
-app.listen(8080, () => {
-    console.log('http server listening');
+login.get("/login", (req, res) => {
+    //todo: check is authenticated
+});
+
+login.post("/login", (req, res) => {
+    //todo: log in
+});
+
+login.post("/logout", (req, res) => {
+    //todo: log out
+});
+
+login.post("/register", (req, res) => {
+
+});
+
+db.connect((err) => {
+    if (err) {
+        console.error("Error connecting to db", err);
+        process.exit(1);
+    }
+    app.listen(8080, () => {
+        console.log('http server listening');
+    })
 })

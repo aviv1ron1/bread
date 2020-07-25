@@ -1,4 +1,15 @@
-<li class="list-group-item d-flex justify-content-between align-items-center">{{data.name}}
-	<span ng-show="expertMode == 'TRUE'">{{expertMode}}</span>
-	<span class="badge badge-info">{{data.amount}}</span>
+<li class="list-group-item d-flex justify-content-between align-items-center">
+	<div class="container">
+		<div class="row">
+			<div class="col text-left">
+				{{data.name}}		
+			</div>
+			<div class="col" ng-show="expertMode == 'TRUE'">
+				
+			</div>
+			<div class="col text-right">
+				<span class="badge badge-info">{{data.amount}}</span>
+			</div>
+		</div>
+	</div>
 </li>

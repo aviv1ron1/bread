@@ -1,0 +1,11 @@
+{
+    "auth": {
+        "minLength": 10,
+        "maxLength": 30,
+        "mustIncludeNumbers": true,
+        "mustIncludeChars": true,
+        "mustIncludeUpperCase": true,
+        "mustIncludeSpecial": true,
+        "maxRepeat": 3
+    }
+}

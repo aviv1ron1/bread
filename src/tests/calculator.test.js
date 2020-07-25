@@ -63,27 +63,24 @@ var matcon4 = {
         "type": "hydration",
         "calculate": true
     }, {
-    	"name": "poolish",
-    	"pre": true,
-    	"hydration": 1,
-    	"ingredients": [
-    		{
-    			"name": "f1",
-    			"type": "flour",
-    			"amount": {
-    				"from": "f1",
-    				"precent": 0.2
-    			}
-    		},
-    		{
-    			"name": "water",
-    			"type": "hydration",
-    			"amount": 1
-    		}, {
-    			"name": "yeast",
-    			"amount": 0.1
-    		}
-    	]
+        "name": "poolish",
+        "pre": true,
+        "hydration": 1,
+        "ingredients": [{
+            "name": "f1",
+            "type": "flour",
+            "amount": {
+                "from": "f1",
+                "precent": 0.2
+            }
+        }, {
+            "name": "water",
+            "type": "hydration",
+            "amount": 1
+        }, {
+            "name": "yeast",
+            "amount": 0.1
+        }]
     }]
 }
 
@@ -98,27 +95,111 @@ var matcon5 = {
         "type": "hydration",
         "calculate": true
     }, {
-    	"name": "starter",
+        "name": "starter",
+        "pre": true,
+        "hydration": 1,
+        "ingredients": [{
+            "name": "f1",
+            "type": "flour",
+            "amount": {
+                "from": "f1",
+                "precent": 0.2
+            }
+        }, {
+            "name": "water",
+            "type": "hydration",
+            "calculate": true
+        }, {
+            "name": "madre",
+            "type": "madre",
+            "hydration": 0.5,
+            "amount": 0.5
+        }]
+    }]
+}
+
+var brioche = {
+    "hydration": 0.65,
+    "ingredients": [{
+        "name": "white flour",
+        "amount": 1,
+        "type": "flour"
+    }, {
+        "name": "salt",
+        "type": "hydration",
+        "amount": 0.02
+    }, {
+        "name": "butter",
+        "type": "hydration",
+        "amount": 0.2
+    }, {
+        "name": "milk",
+        "type": "hydration",
+        "amount": 0.4
+    }, {
+        "name": "sugar",
+        "amount": 0.2
+    }, {
+        "name": "eggs",
+        "amount": 0.17,
+        "type": "hydration"
+    }, {
+        "name": "water",
+        "type": "hydration",
+        "calculate": true
+    }, {
+        "name": "yeast",
+        "amount": 0.02
+    }]
+}
+
+var hamburger = {
+    "hydration": 0.7,
+    "ingredients": [{
+        "name": "white flour",
+        "amount": 0.6,
+        "type": "flour"
+    }, {
+        "name": "whole wheat flour",
+        "amount": 0.4,
+        "type": "flour"
+    }, {
+        "name": "salt",
+        "amount": 0.02
+    }, {
+        "name": "butter",
+        "type": "hydration",
+        "amount": 0.1
+    }, {
+        "name": "water",
+        "type": "hydration",
+        "calculate": true
+    }, {
+        "name": "sugar",
+        "amount": 0.12
+    }, {
+        "name": "eggs",
+        "amount": 0.12,
+        "type": "hydration"
+    }, {
+        "name": "yeast",
+        "amount": 0.015
+    }, {
+    	"name": "choux",
     	"pre": true,
-    	"hydration": 1,
+    	"hydration": 5,
     	"ingredients": [
     		{
-    			"name": "f1",
+    			"name": "whole wheat flour",
     			"type": "flour",
     			"amount": {
-    				"from": "f1",
-    				"precent": 0.2
+    				"from": "whole wheat flour",
+    				"precent": 0.1
     			}
-    		},
-    		{
+    		}, {
     			"name": "water",
     			"type": "hydration",
     			"calculate": true
-    		}, {
-    			"name": "madre",
-    			"type": "madre",
-    			"hydration": 0.5,
-    			"amount": 0.5
     		}
     	]
     }]
@@ -201,3 +282,4 @@ test('test sourdough pre ferment gets calculated right from final weight', () =>
     expect(calculator.select(pre.ingredients, "name", "f1")[0].finalWeight).toBe(13);
     expect(calculator.select(pre.ingredients, "name", "madre")[0].finalWeight).toBe(7);
 });
+
