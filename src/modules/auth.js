@@ -17,6 +17,7 @@ class Auth {
         this.passwordPolicy = services.passwordPolicy;
         this.mailer = services.mailer;
         this.ajv = services.ajv;
+        this.emailValidator = services.emailValidator;
         this.saltLength = 20;
         this.keyIterations = 100000;
         this.keyLength = 128;
@@ -88,7 +89,7 @@ class Auth {
 
     preRegister(email, callback) {
         var self = this;
-        if (!validator.validate(email)) {
+        if (!this.emailValidator.validate(email)) {
             return callback(new SchemaValidationError("email invalid", [email], [{
                 message: "email should be a valid email address"
             }]))
@@ -108,10 +109,13 @@ class Auth {
                         self.db.setPreRegister({
                             email: email,
                             token: token,
-                            timestamp: moment().format()
+                            timestamp: moment().format(),
+                            emailValidated: false
                         }, (err, id) => {
-                            if(err) {
-                                self.logger.error({ err: err }, "preRegister: error saving pre register data in db");
+                            if (err) {
+                                self.logger.error({
+                                    err: err
+                                }, "preRegister: error saving pre register data in db");
                                 return callback(err);
                             }
                             var url = self.url + "/verify?id=" + id.id + "&token=" + token;
@@ -120,8 +124,10 @@ class Auth {
                                 subject: "Please verify your email address",
                                 content: "If you enrolled to our bread application, please verify your email by clicking on this link: " + url
                             }, (err) => {
-                                if(err) {
-                                    self.logger.error({ err: err }, "preRegister: failed to send verification mail")
+                                if (err) {
+                                    self.logger.error({
+                                        err: err
+                                    }, "preRegister: failed to send verification mail")
                                     return callback(err);
                                 }
                                 callback();
@@ -147,46 +153,94 @@ class Auth {
     validatePreRegister(data, callback) {
         var self = this;
         this.db.getPreRegister(data.id, (err, preRegister) => {
-            if(err) {
-                self.logger.error({ err: err }, "validatePreRegister: failed to get item from db");
+            if (err) {
+                self.logger.error({
+                    err: err
+                }, "validatePreRegister: failed to get item from db");
                 return callback(err);
             }
-            if(preRegister.token != data.token) {
+            if (preRegister.token != data.token) {
                 self.logger.error(preRegister, "validatePreRegister: token does not match");
                 return callback(new GenericError({
                     description: "token does not match"
-                })
+                }))
             } else {
-                //todo: delete the preregister from db and callback ok
+                crypto.randomBytes(this.preRegisterTokenLength, function(err, salt) {
+                    if (err) {
+                        return callback(new GenericError({
+                            log: "preRegister: error in crypto random bytes",
+                            err: err,
+                            metadata: [data, preRegister]
+                        }))
+                    } else {
+                        preRegister.emailValidated = true;
+                        preRegister.token = salt.toString('hex');
+                        this.db.updatePreRegister(preRegister, (err) => {
+                            if (err) {
+                                return callback(new GenericError({
+                                    log: "validatePreRegister: error updating validate = true in db",
+                                    err: err,
+                                    metadata: [data]
+                                }))
+                            }
+                            callback(null, { id: preRegister._id, token: preRegister.token });
+                        })
+                    }
+                })
+
             }
         })
     }
 
     register(data, callback) {
         if (!this.ajv.validate("register", data)) {
-            return callback(new SchemaValidationError("auth.register: error validating register json schema", [data], ajv.errors));
+            return callback(new SchemaValidationError("auth.register: error validating register json schema", [data], this.ajv.errors));
         }
         var self = this;
-        this.passwordPolicy.validate(data.password, (illegal) => {
-            if (illegal) {
-                return callback(new PasswordPolicyError(illegal));
+        this.db.getPreRegister(data.id, (err, preRegister) => {
+            if (err) {
+                return callback(new GenericError({
+                    log: "register: error getting preRegister from db",
+                    metadata: [data.email, data.id]
+                }))
             }
-            self.db.getUserByEmail(data.email, (err, user) => {
-                if (err) {
-                    return callback(err)
-                }
-                self.salt(data.password, (err, salted) => {
-                    if (err) {
-                        return callback(err);
+            if (preRegister.token != data.token) {
+                return callback(new GenericError({
+                    description: "token does not match"
+                }))
+            } else {
+                this.passwordPolicy.validate(data.password, (illegal) => {
+                    if (illegal) {
+                        return callback(new PasswordPolicyError(illegal));
                     }
-                    data.password = salted;
-                    data.joined = moment().format();
-                    self.db.addUser(data, (err, id) => {
-                        callback(err, id);
-                    });
+                    self.db.getUserByEmail(data.email, (err, user) => {
+                        if (err instanceof ItemNotFoundError) {
+                            //user does not exist - add to db
+                            self.salt(data.password, (err, salted) => {
+                                if (err) {
+                                    return callback(err);
+                                }
+                                data.password = salted;
+                                data.joined = moment().format();
+                                delete data.id;
+                                delete data.token;
+                                self.db.addUser(data, (err, id) => {
+                                    self.db.removePreRegister(preRegister, (err) => {
+                                        if(err) {
+                                            self.logger.error(err, "register: error removing pre register after registration completed");
+                                        }
+                                    })
+                                    callback(err, id);
+                                });
+                            });
+                        } else {
+                            //user already registered
+                            callback(new ItemExistsError("This email is already registered", [data.email]));
+                        }
+                    })
                 });
-            })
-        });
+            }
+        })
     }
 
     setAuthCookie(email, resp, callback) {

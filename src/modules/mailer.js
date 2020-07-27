@@ -5,6 +5,7 @@ const nou = require('nou');
 class Mailer {
 
     constructor(config, services) {
+        this.test = false;
         if (nou.isNotNull(config) && nou.isNotNull(config.mailer)) {
             for (let [key, value] of Object.entries(config.mailer)) {
                 this[key] = value;
@@ -20,7 +21,9 @@ class Mailer {
         }, {
             from: this.from
         });
-        this.logger = services.logger.child({ module: "mailer" });
+        this.logger = services.logger.child({
+            module: "mailer"
+        });
     }
 
     send(mail, callback) {
@@ -31,16 +34,22 @@ class Mailer {
             text: mail.content
         }
 
-        this.mailer.sendMail(mailOptions, function(error, info) {
-            if (error) {
-                self.logger.error({ err: error }, "sendMail: unexpected error");
-                return callback(new GenericError({
-                    log: "sendMail: unexpected error",
-                    metadata: [mailOptions, info]
-                }));
-            }
-            callback(null, info);
-        });
+        if (this.test) {
+            callback(null, "test");
+        } else {
+            this.mailer.sendMail(mailOptions, function(error, info) {
+                if (error) {
+                    self.logger.error({
+                        err: error
+                    }, "sendMail: unexpected error");
+                    return callback(new GenericError({
+                        log: "sendMail: unexpected error",
+                        metadata: [mailOptions, info]
+                    }));
+                }
+                callback(null, info);
+            });
+        }
     }
 
 }

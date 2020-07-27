@@ -118,7 +118,7 @@ class Db {
     //////pre-register ----------------------------------------------------------------
 
     setPreRegister(data, callback) {
-        this.insert("pre-register", data, (err) => {
+        this.insert("pre-register", data, (err, id) => {
             if (err) {
                 return callback(new GenericError({
                     log: "db.setPreRegister: error inserting to db",
@@ -126,12 +126,25 @@ class Db {
                     metadata: [data]
                 }));
             }
-            callback();
+            callback(null, id);
         });
     }
 
-    removePreRegister(id, rev, callback) {
-        this.delete("pre-register", id, rev, (err) => {
+    updatePreRegister(preRegister, callback) {
+        this.update("pre-register", preRegister, (err, id) => {
+            if (err) {
+                return callback(new GenericError({
+                    log: "db.updatePreRegister: error updating in db",
+                    err: err,
+                    metadata: [preRegister]
+                }));
+            }
+            callback(null, id);
+        })
+    }
+
+    removePreRegister(preRegister, callback) {
+        this.delete("pre-register", preRegister._id, preRegister._rev, (err) => {
             if (err) {
                 return callback(new GenericError({
                     log: "db.removePreRegister: error in delete",
