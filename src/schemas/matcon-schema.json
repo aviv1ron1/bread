@@ -8,8 +8,7 @@
             "properties": {
                 "name": {
                     "type": "string",
-                    "description": "name of the ingredient",
-                    "required": true
+                    "description": "name of the ingredient"
                 },
                 "type": {
                     "enum": ["flour", "hydration", "madre"],
@@ -20,8 +19,7 @@
                 },
                 "hydration": {
                     "type": "number",
-                    "minimum": 0,
-                    "exclusiveMinimum": true,
+                    "exclusiveMinimum": 0
                 },
                 "pre": {
                     "type": "boolean"
@@ -30,23 +28,20 @@
                     "description": "the amount of the ingredient, either in bakers precentage from the total flour inthe recipe or as a bakers precentage from a specific flour",
                     "anyOf": [{
                         "type": "number",
-                        "minimum": 0,
-                        "exclusiveMinimum": true
+                        "exclusiveMinimum": 0
                     }, {
                         "type": "object",
                         "properties": {
                             "from": {
-                                "type": "string",
-                                "required": true
+                                "type": "string"
                             },
                             "precent": {
                                 "type": "number",
-                                "required": true,
-                                "minimum": 0,
-                                "exclusiveMinimum": true,
+                                "exclusiveMinimum": 0,
                                 "maximum": 1
                             }
-                        }
+                        },
+                        "required": ["from", "precent"]
                     }]
                 },
                 "ingredients": {
@@ -55,57 +50,50 @@
                         "$ref": "#/definitions/ingredient"
                     }
                 }
-            }
+            },
+            "required": ["name"]
         },
         "timing": {
-            "type":"object",
+            "type": "object",
             "properties": {
                 "name": {
-                    "type": "string",
-                    "required": true
+                    "type": "string"
                 },
                 "time": {
-                    "type": "integer",
-                    "required": true
+                    "type": "integer"
                 },
                 "description": {
                     "type": "string"
                 },
                 "link": {
-                    "type": "uri"
+                    "type": "string"
                 }
-            }
+            },
+            "required": ["name", "time"]
         }
     },
     "properties": {
         "tags": {
             "type": "array",
-            "required": true,
             "items": {
                 "type": "string"
             }
         },
         "name": {
             "type": "string",
-            "description": "the name of the recipe",
-            "required": true
+            "description": "the name of the recipe"
         },
         "description": {
-            "type": "string",
-            "required": true
+            "type": "string"
         },
         "hydration": {
             "type": "number",
-            "minimum": 0,
-            "exclusiveMinimum": true,
-            "required": true,
+            "exclusiveMinimum": 0,
             "description": "hydration in bakers precentage"
         },
         "weight": {
             "type": "number",
-            "minimum": 0,
-            "exclusiveMinimum": true,
-            "required": true,
+            "exclusiveMinimum": 0,
             "description": "default loaf weight"
         },
         "temperature": {
@@ -117,28 +105,25 @@
         },
         "rating": {
             "type": "object",
-            "required": true,
             "properties": {
                 "average": {
                     "type": "number",
                     "minimum": 1,
-                    "maximum": 5,
-                    "required": true
+                    "maximum": 5
                 },
                 "details": {
                     "type": "array",
-                    "required": true,
                     "items": {
                         "type": "number"
                     },
                     "minItems": 5,
                     "maxItems": 5
                 }
-            }
+            },
+            "required": ["average", "details"]
         },
         "ingredients": {
             "type": "array",
-            "requried": true,
             "minItems": 2,
             "items": {
                 "$ref": "#/definitions/ingredient"
@@ -147,11 +132,11 @@
         "times": {
             "type": "array",
             "description": "definition of the steps of the recipe with timings",
-            "required": true,
             "minItems": 2,
             "items": {
                 "$ref": "#/definitions/timing"
             }
         }
-    }
+    },
+    "required": ["name", "tags", "description", "hydration", "weight", "author", "rating", "ingredients", "times"]
 }

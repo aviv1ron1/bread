@@ -1,9 +1,29 @@
 const Auth = require('../modules/auth.js');
 
+const bunyan = require('bunyan');
+const Ajv = require('ajv');
+const moment = require('moment');
+
+const PasswordPolicy = require('../modules/password-policy.js');
+//const Mailer = require('../modules/mailer.js');
+
+const ItemNotFoundError = require('../errors/item-not-found-error.js');
+const ItemExistsError = require('../errors/item-exists-error.js');
+const PasswordPolicyError = require('../errors/password-policy-error.js');
+
+const registerSchema = require('../schemas/register-schema.json');
+const matconSchema = require('../schemas/matcon-schema.json');
+const reviewSchema = require('../schemas/review-schema.json');
+const userSchema = require('../schemas/user-schema.json');
+
+var logger = bunyan.createLogger({
+    name: "auth.test"
+});
+
 var db = {
-    getUser: jest.fn((email, callback) => {
+    getUserByEmail: jest.fn((email, callback) => {
         if (email == "notfound@a.com") {
-            callback()
+            callback(new ItemNotFoundError());
         } else {
             callback(null, {
                 email: email,
@@ -18,22 +38,65 @@ var db = {
         }
     }),
     addUser: jest.fn((data, callback) => {
-        callback(null, "123");
+        callback(null, {
+            id: "123",
+            _rev: "456"
+        });
+    }),
+    setPreRegister: jest.fn((data, callback) => {
+        callback(null, {
+            id: "789",
+            _rev: "890"
+        })
+    }),
+    getPreRegister: jest.fn((id, callback) => {
+        if (id == "notfound") {
+            return callback(new ItemNotFoundError());
+        }
+        callback(null, {
+            email: "email@example.com",
+            token: "123",
+            timestamp: moment().format(),
+            emailValidated: false,
+            id: id,
+            _id: id
+        })
+    }),
+    removePreRegister: jest.fn((id, callback) => {
+        callback(null, id);
+    }),
+    updatePreRegister: jest.fn((data, callback) => {
+        callback(null, { id: "123", token: "123" });
+    }) 
+}
+
+var services = {
+    db: db,
+    logger: logger,
+    emailValidator: require("email-validator")
+}
+
+services.mailer = {
+    send: jest.fn((mail, callback) => {
+        callback(null, "test");
     })
 }
 
-var auth = new Auth(db);
-var cauth = new Auth(db, {
-    Auth: {
+services.ajv = new Ajv();
+services.ajv.addSchema(registerSchema, "register");
+services.ajv.addSchema(matconSchema, "matcon");
+services.ajv.addSchema(reviewSchema, "review");
+services.ajv.addSchema(userSchema, "user");
+services.passwordPolicy = new PasswordPolicy({}, services);
+
+var auth = new Auth({}, services);
+var cauth = new Auth({
+    auth: {
         keyLength: 16,
         keyIterations: 18,
         digest: "md5"
-    },
-    PasswordPolicy: {
-    	minLength: 1, 
-    	maxLength: 2
     }
-})
+}, services)
 
 test('auth ctor works', () => {
     expect(auth).toBeDefined();
@@ -245,7 +308,7 @@ test('login works', (done) => {
         try {
             expect(err).toBeNull();
             expect(result).toBeTruthy();
-            expect(db.getUser.mock.calls.length).toBe(1);
+            expect(db.getUserByEmail.mock.calls.length).toBe(1);
             done();
         } catch (err) {
             done(err);
@@ -258,7 +321,7 @@ test('login returns false when password not same', (done) => {
         try {
             expect(err).toBeNull();
             expect(result).toBeFalsy();
-            expect(db.getUser.mock.calls.length).toBe(2);
+            expect(db.getUserByEmail.mock.calls.length).toBe(2);
             done();
         } catch (err) {
             done(err);
@@ -269,23 +332,9 @@ test('login returns false when password not same', (done) => {
 test('login returns false when email not found', (done) => {
     auth.login("notfound@a.com", "aa", (err, result) => {
         try {
-            expect(err).toBeNull();
-            expect(result).toBeFalsy();
-            expect(db.getUser.mock.calls.length).toBe(3);
-            done();
-        } catch (err) {
-            done(err);
-        }
-    })
-})
-
-test('register fails when email not supplied', (done) => {
-    auth.register({}, (err, result) => {
-        try {
-            expect(err).toBe("missing email");
-            expect(result).toBeUndefined();
-            expect(db.getUser.mock.calls.length).toBe(3);
-            expect(db.addUser.mock.calls.length).toBe(0);
+            expect(err).toBeDefined();
+            expect(err instanceof ItemNotFoundError).toBeTruthy();
+            expect(db.getUserByEmail.mock.calls.length).toBe(3);
             done();
         } catch (err) {
             done(err);
@@ -310,15 +359,15 @@ test.each([
     "email@111.222.333.44444",
     "email@example..com",
     "Abc..123@example.com"
-])('register fails when email supplied not valid regex %s', (email, done) => {
-    auth.register({
-        email: email
-    }, (err, result) => {
+])('pre register fails when email supplied not valid regex %s', (email, done) => {
+    auth.preRegister(email, (err, result) => {
         try {
-            expect(err).toBe("email address is not valid");
+            expect(err).toBeDefined();
+            expect(err.description).toBe("Item validation failed");
+            expect(err.errors[0].message).toBe("email should be a valid email address");
             expect(result).toBeUndefined();
-            expect(db.getUser.mock.calls.length).toBe(3);
-            expect(db.addUser.mock.calls.length).toBe(0);
+            expect(db.getUserByEmail.mock.calls.length).toBe(3);
+            expect(db.setPreRegister.mock.calls.length).toBe(0);
             done();
         } catch (err) {
             done(err);
@@ -327,25 +376,99 @@ test.each([
 })
 
 test.each([
-"email@example.com",
-"firstname.lastname@example.com",
-"email@subdomain.example.com",
-"firstname+lastname@example.com",
-"1234567890@example.com",
-"email@example-one.com",
-"_______@example.com",
-"email@example.name",
-"email@example.museum",
-"email@example.co.jp",
-"firstname-lastname@example.com"
-])('register success when email supplied is valid regex %s', (email, done) => {
-    auth.register({
-        email: email
+    "email@example.com",
+    "firstname.lastname@example.com",
+    "email@subdomain.example.com",
+    "firstname+lastname@example.com",
+    "1234567890@example.com",
+    "email@example-one.com",
+    "_______@example.com",
+    "email@example.name",
+    "email@example.museum",
+    "email@example.co.jp",
+    "firstname-lastname@example.com"
+])('pre register success when email supplied is valid regex %s', (email, done) => {
+    auth.preRegister(email, (err, result) => {
+        try {
+            expect(err).toBeDefined();
+            expect(err.description).toBe("this email is already registered");
+            expect(result).toBeUndefined();
+            expect(db.setPreRegister.mock.calls.length).toBe(0);
+            done();
+        } catch (err) {
+            done(err);
+        }
+    })
+})
+
+test('validatePreRegister fails when preRegister not found', (done) => {
+    auth.validatePreRegister({
+        id: "notfound"
     }, (err, result) => {
         try {
-            expect(err).toBe("missing password");
+            expect(err).toBeDefined();
+            expect(err instanceof ItemNotFoundError).toBeTruthy();
             expect(result).toBeUndefined();
-            expect(db.getUser.mock.calls.length).toBe(3);
+            expect(db.updatePreRegister.mock.calls.length).toBe(0);
+            done();
+        } catch (err) {
+            done(err);
+        }
+    })
+})
+
+test('validatePreRegister fails when token does not match', (done) => {
+    auth.validatePreRegister({
+        id: "123",
+        token: ""
+    }, (err, result) => {
+        try {
+            expect(err).toBeDefined();
+            expect(err.description).toBe("token does not match");
+            expect(result).toBeUndefined();
+            expect(db.updatePreRegister.mock.calls.length).toBe(0);
+            done();
+        } catch (err) {
+            done(err);
+        }
+    })
+})
+
+test('validatePreRegister succeeds', (done) => {
+    auth.validatePreRegister({
+        id: "123",
+        token: "123"
+    }, (err, result) => {
+        try {
+            expect(err).toBeNull();
+            expect(result.id).toBe("123");
+            expect(result.token).toBeDefined();
+            expect(result.token.length).toBe(40);
+            expect(db.updatePreRegister.mock.calls.length).toBe(1);
+            expect(db.updatePreRegister.mock.calls[0][0].emailValidated).toBeTruthy();
+            expect(db.updatePreRegister.mock.calls[0][0].token).not.toMatch("123");
+            done();
+        } catch (err) {
+            done(err);
+        }
+    })
+})
+
+
+test('register fails when email not supplied', (done) => {
+    var gubeCount = db.getUserByEmail.mock.calls.length;
+    auth.register({
+        name: "",
+        password: "Abcd123#"
+    }, (err, result) => {
+        try {
+            expect(err).toBeDefined();
+            expect(err.description).toBe("Item validation failed");
+            expect(err.errors).toBeDefined()
+            expect(err.errors[0]).toBeDefined()
+            expect(err.errors[0].message).toBe("should have required property 'email'")
+            expect(result).toBeUndefined();
+            expect(db.getUserByEmail.mock.calls.length).toBe(gubeCount);
             expect(db.addUser.mock.calls.length).toBe(0);
             done();
         } catch (err) {
@@ -355,13 +478,63 @@ test.each([
 })
 
 test('register fails when password not supplied', (done) => {
+    var gubeCount = db.getUserByEmail.mock.calls.length;
     auth.register({
-    	email: "email@example.com"
+        email: "email@example.com",
+        name: ""
     }, (err, result) => {
         try {
-            expect(err).toBe("missing password");
+            expect(err).toBeDefined();
+            expect(err.description).toBe("Item validation failed");
+            expect(err.errors).toBeDefined()
+            expect(err.errors[0]).toBeDefined()
+            expect(err.errors[0].message).toBe("should have required property 'password'")
             expect(result).toBeUndefined();
-            expect(db.getUser.mock.calls.length).toBe(3);
+            expect(db.getUserByEmail.mock.calls.length).toBe(gubeCount);
+            expect(db.addUser.mock.calls.length).toBe(0);
+            done();
+        } catch (err) {
+            done(err);
+        }
+    })
+})
+
+test('register fails when preRegister does not exist', (done) => {
+    var gubeCount = db.getUserByEmail.mock.calls.length;
+    auth.register({
+        email: "a@a.com",
+        password: "a",
+        name: "",
+        token: "",
+        id: "notfound"
+    }, (err, result) => {
+        try {
+            expect(err).toBeDefined();
+            expect(err instanceof ItemNotFoundError).toBeTruthy();
+            expect(result).toBeUndefined();
+            expect(db.getUserByEmail.mock.calls.length).toBe(gubeCount);
+            expect(db.addUser.mock.calls.length).toBe(0);
+            done();
+        } catch (err) {
+            done(err);
+        }
+    })
+})
+
+test('register fails when preRegister token does not match', (done) => {
+    var gubeCount = db.getUserByEmail.mock.calls.length;
+    auth.register({
+        email: "a@a.com",
+        password: "a",
+        name: "",
+        token: "",
+        id: "123"
+    }, (err, result) => {
+        try {
+            expect(err).toBeDefined();
+            expect(err.description).toBe("token does not match");
+            expect(result).toBeUndefined();
+            expect(db.getUserByEmail.mock.calls.length).toBe(gubeCount);
             expect(db.addUser.mock.calls.length).toBe(0);
             done();
         } catch (err) {
@@ -371,31 +544,20 @@ test('register fails when password not supplied', (done) => {
 })
 
 test('register fails when password policy not valid', (done) => {
+    var gubeCount = db.getUserByEmail.mock.calls.length;
     auth.register({
-    	email: "email@example.com",
-    	password: "a"
+        email: "email@example.com",
+        password: "a",
+        name: "",
+        token: "123",
+        id: "123"
     }, (err, result) => {
         try {
-            expect(err).toBe("password must be at least 8 characters");
+            expect(err).toBeDefined();
+            expect(err instanceof PasswordPolicyError).toBeTruthy();
+            expect(err.description).toBe("Password does not meet required password policy. password must be at least 8 characters");
             expect(result).toBeUndefined();
-            expect(db.getUser.mock.calls.length).toBe(3);
-            expect(db.addUser.mock.calls.length).toBe(0);
-            done();
-        } catch (err) {
-            done(err);
-        }
-    })
-})
-
-test('register fails when password policy not valid with custom config to PP', (done) => {
-    cauth.register({
-    	email: "email@example.com",
-    	password: "aaa"
-    }, (err, result) => {
-        try {
-            expect(err).toBe("password must be maximum 2 characters");
-            expect(result).toBeUndefined();
-            expect(db.getUser.mock.calls.length).toBe(3);
+            expect(db.getUserByEmail.mock.calls.length).toBe(gubeCount);
             expect(db.addUser.mock.calls.length).toBe(0);
             done();
         } catch (err) {
@@ -405,14 +567,19 @@ test('register fails when password policy not valid with custom config to PP', (
 })
 
 test('register fails when user allready exists', (done) => {
+    var gubeCount = db.getUserByEmail.mock.calls.length;
     auth.register({
-    	email: "email@example.com",
-    	password: "Abcd123#"
+        email: "email@example.com",
+        password: "Abcd123#",
+        name: "123",
+        token: "123",
+        id: "123"
     }, (err, result) => {
         try {
-            expect(err).toBe("email allready exists");
+            expect(err).toBeDefined();
+            expect(err instanceof ItemExistsError).toBeTruthy();
             expect(result).toBeUndefined();
-            expect(db.getUser.mock.calls.length).toBe(4);
+            expect(db.getUserByEmail.mock.calls.length).toBe(gubeCount+1);
             expect(db.addUser.mock.calls.length).toBe(0);
             done();
         } catch (err) {
@@ -422,15 +589,23 @@ test('register fails when user allready exists', (done) => {
 })
 
 test('register succeeds', (done) => {
+    var gubeCount = db.getUserByEmail.mock.calls.length;
     auth.register({
-    	email: "notfound@a.com",
-    	password: "Abcd123#"
+        email: "notfound@a.com",
+        password: "Abcd123#",
+        name: "123",
+        token: "123",
+        id: "123"
     }, (err, result) => {
         try {
             expect(err).toBeNull();
-            expect(result).toBe("123");
-            expect(db.getUser.mock.calls.length).toBe(5);
+            expect(result).toStrictEqual({
+                "_rev": "456",
+                "id": "123"
+            });
+            expect(db.getUserByEmail.mock.calls.length).toBe(gubeCount+1);
             expect(db.addUser.mock.calls.length).toBe(1);
+            expect(db.removePreRegister.mock.calls.length).toBe(1);
             done();
         } catch (err) {
             done(err);

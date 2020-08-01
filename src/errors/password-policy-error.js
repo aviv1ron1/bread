@@ -10,4 +10,4 @@ class PasswordPolicyError extends GenericError {
 	}
 }
 
-module.exports = SchemaValidationError;
+module.exports = PasswordPolicyError;

@@ -127,18 +127,18 @@ var brioche = {
     }, {
         "name": "salt",
         "type": "hydration",
-        "amount": 0.02
+        "amount": 0.04
     }, {
         "name": "butter",
         "type": "hydration",
-        "amount": 0.2
+        "amount": 0.4
     }, {
         "name": "milk",
         "type": "hydration",
         "amount": 0.4
     }, {
         "name": "sugar",
-        "amount": 0.2
+        "amount": 0.25
     }, {
         "name": "eggs",
         "amount": 0.17,
@@ -202,6 +202,131 @@ var hamburger = {
     			"calculate": true
     		}
     	]
+    }]
+}
+
+var pandemi = {
+    "hydration": 0.65,
+    "ingredients": [{
+        "name": "white flour",
+        "amount": 0.8,
+        "type": "flour"
+    }, {
+        "name": "whole wheat flour",
+        "amount": 0.2,
+        "type": "flour"
+    }, {
+        "name": "salt",
+        "amount": 0.02
+    }, {
+        "name": "butter",
+        "type": "hydration",
+        "amount": 0.05
+    }, {
+        "name": "water",
+        "type": "hydration",
+        "calculate": true
+    }, {
+        "name": "sugar",
+        "amount": 0.04
+    }, {
+        "name": "milk",
+        "amount": 0.125,
+        "type": "hydration"
+    }, {
+        "name": "starter",
+        "pre": true,
+        "hydration": .5,
+        "ingredients": [
+            {
+                "name": "whole wheat flour",
+                "type": "flour",
+                "amount": {
+                    "from": "whole wheat flour",
+                    "precent": 0.2
+                }
+            }, {
+                "name": "water",
+                "type": "hydration",
+                "calculate": true
+            }, {
+                "name": "madre",
+                "type": "madre",
+                "hydration": 0.65,
+                "amount": 0.1
+            }
+        ]
+    }]
+}
+
+var classic50PrecentWholeWheat = {
+    "hydration": 0.85,
+    "ingredients": [{
+        "name": "whole wheat flour",
+        "amount": 0.5,
+        "type": "flour"
+    }, {
+        "name": "cafri flour",
+        "amount": 0.25,
+        "type": "flour"
+    }, {
+        "name": "strong white flour",
+        "amount": 0.25,
+        "type": "flour"
+    }, {
+        "name": "salt",
+        "type": "hydration",
+        "amount": 0.02
+    }, {
+        "name": "oil",
+        "type": "hydration",
+        "amount": 0.025
+    }, {
+        "name": "water",
+        "type": "hydration",
+        "calculate": true
+    }, {
+        "name": "starter",
+        "hydration": 0.65,
+        "pre": true,
+        "ingredients": [{
+            "name": "whole wheat flour",
+            "type": "flour",
+            "amount": {
+                "precent": 0.2,
+                "from": "whole wheat flour"
+            }
+        }, {
+            "name": "water",
+            "calculate": true,
+            "type": "hydration"
+        }, {
+            "name": "madre",
+            "amount": 0.33,
+            "type": "madre",
+            "hydration": 0.65
+        }]
+    }]
+}
+
+var pizza = {
+    "hydration": 0.65,
+    "ingredients": [{
+        "name": "pizza flour",
+        "amount": 1,
+        "type": "flour"
+    }, {
+        "name": "salt",
+        "type": "hydration",
+        "amount": 0.02
+    }, {
+        "name": "water",
+        "type": "hydration",
+        "calculate": true
+    }, {
+        "name": "sourdough",
+        "hydration": 0.65,
+        "amount": 0.15
     }]
 }
 
@@ -273,7 +398,6 @@ test('test sourdough pre ferment gets calculated right', () => {
 
 test('test sourdough pre ferment gets calculated right from final weight', () => {
     var amounts = calculator.calculateAmountFromFinalWeight(96, matcon5);
-    fs.writeFileSync("output.json", JSON.stringify(amounts))
     expect(calculator.select(amounts.ingredients, "name", "f1")[0].finalWeight).toBe(51);
     expect(calculator.select(amounts.ingredients, "name", "starter")[0].finalWeight).toBe(35);
     expect(calculator.select(amounts.ingredients, "name", "water")[0].finalWeight).toBe(17);
@@ -282,4 +406,14 @@ test('test sourdough pre ferment gets calculated right from final weight', () =>
     expect(calculator.select(pre.ingredients, "name", "f1")[0].finalWeight).toBe(13);
     expect(calculator.select(pre.ingredients, "name", "madre")[0].finalWeight).toBe(7);
 });
+
+test('make the fucking recipe', () => {
+    var amounts = calculator.calculateAmountFromFinalWeight(250*4, pizza);
+    fs.writeFileSync("output.json", JSON.stringify(amounts))
+    expect(amounts.ingredients).toBeDefined();
+});
+
+
+
+
 

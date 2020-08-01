@@ -154,6 +154,9 @@ class Auth {
         var self = this;
         this.db.getPreRegister(data.id, (err, preRegister) => {
             if (err) {
+                 if(err instanceof ItemNotFoundError) {
+                    return callback(err);
+                }
                 self.logger.error({
                     err: err
                 }, "validatePreRegister: failed to get item from db");
@@ -165,7 +168,7 @@ class Auth {
                     description: "token does not match"
                 }))
             } else {
-                crypto.randomBytes(this.preRegisterTokenLength, function(err, salt) {
+                crypto.randomBytes(self.preRegisterTokenLength, function(err, salt) {
                     if (err) {
                         return callback(new GenericError({
                             log: "preRegister: error in crypto random bytes",
@@ -175,7 +178,7 @@ class Auth {
                     } else {
                         preRegister.emailValidated = true;
                         preRegister.token = salt.toString('hex');
-                        this.db.updatePreRegister(preRegister, (err) => {
+                        self.db.updatePreRegister(preRegister, (err) => {
                             if (err) {
                                 return callback(new GenericError({
                                     log: "validatePreRegister: error updating validate = true in db",
@@ -199,6 +202,9 @@ class Auth {
         var self = this;
         this.db.getPreRegister(data.id, (err, preRegister) => {
             if (err) {
+                if(err instanceof ItemNotFoundError) {
+                    return callback(err);
+                }
                 return callback(new GenericError({
                     log: "register: error getting preRegister from db",
                     metadata: [data.email, data.id]

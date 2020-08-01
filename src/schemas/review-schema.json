@@ -4,26 +4,22 @@
     "type": "object",
     "properties": {
         "matconId": {
-            "type": "string",
-            "required": true
+            "type": "string"
         },
         "userId": {
-            "type": "string",
-            "required": true
+            "type": "string"
         },
         "score": {
             "type": "integer",
-            "required": true,
             "minimum": 1,
             "maximum": 5
         },
         "content": {
-            "type": "string",
-            "required": true
+            "type": "string"
         },
         "timestamp": {
-            "type": "date-time",
-            "required": true
+            "type": "string"
         }
-    }
+    },
+    "required": ["matconId", "userId", "score", "content", "timestamp"]
 }

@@ -4,12 +4,13 @@ const path = require('path');
 const nou = require('nou');
 const fs = require('fs');
 const bunyan = require('bunyan');
+const Ajv = require('ajv');
+var emailValidator = require("email-validator");
 
 const ItemNotFoundError = require('./errors/item-not-found-error.js');
-const Ajv = require('ajv');
-const Mailer = require('mailer');
-var emailValidator = require("email-validator");
-const PasswordPolicy = require('./password-policy.js');
+
+const Mailer = require('./modules/mailer.js');
+const PasswordPolicy = require('./nodules/password-policy.js');
 const calculator = require('./modules/calculator.js');
 const Auth = require('./modules/auth.js');
 const Db = require('./db.js');
@@ -39,7 +40,9 @@ for (let [key, value] of Object.entries(config.main)) {
     configuration[key] = value;
 }
 
-var services = {}
+var services = {
+    emailValidator: emailValidator
+}
 
 services.ajv = new Ajv();
 services.ajv.addSchema(registerSchema, "register");

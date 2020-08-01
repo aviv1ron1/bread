@@ -2,7 +2,7 @@ const PasswordPolicy = require('../modules/password-policy.js');
 
 var pp = new PasswordPolicy();
 var cp = new PasswordPolicy({
-    PasswordPolicy: {
+    "password-policy": {
         minLength: 7,
         maxLength: 10,
         mustIncludeNumbers: false,
