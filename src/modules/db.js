@@ -1,4 +1,4 @@
-var _Cloudant = require('@cloudant/cloudant');
+const sql = require('mssql');
 var nou = require("nou");
 const SchemaValidationError = require('../errors/schema-validation-error.js');
 const GenericError = require('../errors/generic-error.js');
@@ -10,11 +10,7 @@ class Db {
         if (nou.isNull(config.db)) {
             throw new Error("configuration missing db section");
         }
-        this.creds = {
-            account: config.db.username,
-            password: config.db.password,
-            url: config.db.url
-        }
+        this.creds = config.db.creds;
         this.ajv = services.ajv;
         this.logger = services.logger.child({
             module: "db"
@@ -22,61 +18,37 @@ class Db {
     }
 
     connect(callback) {
-        this.cloudant = _Cloudant(this.creds, (err) => {
-            if (err) {
-                callback(new GenericError({
-                    log: "failed to connect to cloudant in db.js",
-                    err: err
-                }));
-            } else {
-                console.log("connected to cloudant");
-                callback();
-            }
-        });
+        var self = this;
+        sql.on('error', err => {
+            self.logger.error(err, "unexpected error in db");
+            throw err;
+        })
+        sql.connect(this.creds).then((pool) => {
+            self.pool = pool;
+            callback();
+        })
     }
 
     //////user ----------------------------------------------------------------
 
     getUserByEmail(email, callback) {
-        this.find("users", {
-            email: email
-        }, function(err, result) {
-            if (err) {
-                callback(new GenericError({
-                    log: "db.getUserByEmail: failed in get",
-                    err: err,
-                    metadata: [email]
-                }));
-            } else {
-                if (result.docs.length == 0) {
-                    callback(new ItemNotFoundError("db.getUser: user not found", [email, result]));
-                } else {
-                    callback(null, result.docs[0]);
-                }
-            }
-        });
+        this.getSingle("select * from [User] where Email = @email", [{
+            name: "email",
+            type: sql.NVarChar(320),
+            value: email
+        }], callback);
     }
 
     getUser(id, callback) {
-        this.get("users", id, function(err, result) {
-            if (err) {
-                callback(new GenericError({
-                    log: "db.getUser: failed in find",
-                    err: err,
-                    metadata: [email]
-                }));
-            } else {
-                if (result.docs.length == 0) {
-                    callback(new ItemNotFoundError("db.getUser: user not found", [email, result]));
-                } else {
-                    callback(null, result.docs[0]);
-                }
-            }
-        });
+        this.getSingle("select * from [User] where Id = @id", [{
+            name: "id",
+            type: sql.Int,
+            value: id
+        }], callback);
     }
 
     deleteUser(email, callback) {
-        this.getUser(email, (err, doc) => {
+        this.getUserByEmail(email, (err, doc) => {
             if (err) {
                 if (err instanceof ItemNotFoundError) {
                     return callback(err);
@@ -88,22 +60,33 @@ class Db {
                     }));
                 }
             }
-            this.delete("users", doc._id, doc._rev, (err) => {
+            this.delete("User", doc.Id, (err, deleted) => {
                 if (err) {
+                    if (err instanceof ItemNotFoundError) {
+                        return callback(err)
+                    }
                     return callback(new GenericError({
                         log: "db.deleteUser: error while deleting user",
                         err: err,
                         metadata: [email]
                     }));
                 }
-                this.removeUserAuth(email, callback);
+                //todo: delete all user's recipes and reviews???
+                callback(null, deleted);
             });
-            //todo: delete all user's recipes and reviews
         })
     }
 
-    addUser(data, callback) {
-        this.insert('users', data, (err, id) => {
+    addUser(email, data, callback) {
+        this.insert('User', [{
+            name: "Email",
+            type: sql.NVarChar(320),
+            value: email
+        }, {
+            name: "Data",
+            type: sql.NVarChar,
+            value: JSON.stringify(data)
+        }], (err, id) => {
             if (err) {
                 return callback(new GenericError({
                     log: "db.addUser: error inserting to db",
@@ -461,25 +444,66 @@ class Db {
 
     //basic generic crud --------------------------------------------------------------------
 
-    insert(coll, document, callback) {
-        this.cloudant.use(coll).insert(document, (err, body, headers) => {
+    query(query, params, callback) {
+        var self = this;
+        const ps = new sql.PreparedStatement()
+        var paramsObj = {}
+        params.forEach((param) => {
+            ps.input(param.name, param.type);
+            paramsObj[param.name] = param.value;
+        });
+
+        ps.prepare(query, err => {
             if (err) {
                 return callback(new GenericError({
-                    log: "db.insert: error",
                     err: err,
-                    metadata: [coll, document]
-                }));
+                    log: "error in db get prepare",
+                    metadata: [query, params]
+                }))
             }
-            if (!body.ok) {
+
+            ps.execute(paramsObj, (err, result) => {
+                if (err) {
+                    return callback(new GenericError({
+                            err: err,
+                            log: "error in db query execute",
+                            metadata: [query, params]
+                        }))
+                        //TODO: do I need this?
+                        // ps.unprepare((err) => {
+                        //     self.logger.error(err, "unexpected error in db query unprepare after error occured in execute")
+                        // })
+                        // return;
+                }
+
+                ps.unprepare(err => {
+                    if (err) {
+                        self.logger.error(err, "unexpected error in db query unprepare after succesfull execute")
+                    }
+                    callback(null, result);
+                })
+            })
+        })
+    }
+
+
+    insert(table, params, callback) {
+        var q = "insert into [" + table + "] values(" + params.map(i => "@" + i.name).join(",") + "); SELECT SCOPE_IDENTITY() as Id";
+        this.query(q, params, (err, result) => {
+            if (err) {
                 return callback(new GenericError({
-                    log: "db.insert: error, body not ok",
-                    metadata: [coll, document, body, headers]
+                    err: err,
+                    log: "db insert error",
+                    metadata: [table, params, q]
                 }));
             }
-            callback(null, {
-                id: body.id,
-                rev: body.rev
-            });
+            if (nou.isNull(result.recordset) || nou.isNull(result.recordset[0]) || nou.isNull(result.recordset[0].Id)) {
+                return callback(new GenericError({
+                    log: "db insert did not return Id properly",
+                    metadata: [table, params, q, result]
+                }));
+            }
+            callback(null, result.recordset[0].Id);
         })
     }
 
@@ -506,62 +530,63 @@ class Db {
         })
     }
 
-    get(coll, id, callback) {
-        this.cloudant.use(coll).get(id, function(err, result) {
+
+    get(query, params, callback) {
+        this.query(query, params, (err, result) => {
             if (err) {
-                if (err.error == "not_found") {
-                    return callback(new ItemNotFoundError("not found", [coll, id]))
+                callback(err);
+            } else {
+                result.recordsets.forEach((dataset) => {
+                    dataset.forEach((item) => {
+                        if (item.Data) {
+                            try {
+                                item.Data = JSON.parse(item.Data);
+                            } catch (ex) {
+                                self.logger.error(new GenericError({
+                                    err: ex,
+                                    log: "db.get failure to parse json from result",
+                                    metadata: [query, params, item]
+                                }));
+                            }
+                        }
+                    })
+                });
+                callback(null, result);
+            }
+        });
+    }
+
+
+    getSingle(query, params, callback) {
+        this.get(query, params, (err, result) => {
+            if (err) {
+                callback(err);
+            } else {
+                if (result.recordsets.length > 0 && result.recordsets[0].length > 0) {
+                    callback(null, result.recordsets[0][0]);
+                } else {
+                    callback(new ItemNotFoundError("db.getSingle item not found", [query, params]));
                 }
-                return callback(new GenericError({
-                    log: "db.get: error",
-                    err: err,
-                    metadata: [coll, id, document]
-                }));
             }
-            callback(null, result);
-        });
+        })
     }
 
-    find(coll, selector, callback) {
-        this.cloudant.use(coll).find({
-            selector: selector
-        }, function(err, result) {
+    delete(table, id, callback) {
+        this.query("delete from [" + table + "] where Id = @id", [{
+            name: "id",
+            type: sql.Int,
+            value: id
+        }], (err, result) => {
             if (err) {
-                return callback(new GenericError({
-                    log: "db.find: error",
-                    err: err,
-                    metadata: [coll, selector]
-                }));
-            }
-            if (result.docs.length == 0) {
-                return callback(new ItemNotFoundError("not found", [coll, selector]))
-            }
-            callback(null, result.docs);
-        });
-    }
-
-    delete(coll, _id, _rev, callback) {
-        this.cloudant.use(coll).destroy(doc._id, doc._rev, (err, body, headers) => {
-            if (err) {
-                if (err.error == "not_found") {
-                    return callback(new ItemNotFoundError("not found", [coll, id]))
+                callback(err);
+            } else {
+                if (result.rowsAffected < 1) {
+                    return callback(new ItemNotFoundError("db delete not found", [table, id]));
                 }
-                return callback(new GenericError({
-                    log: "db.delete: error",
-                    err: err,
-                    metadata: [coll, _id, _rev]
-                }));
+                callback(null, result.rowsAffected);
             }
-            if (!body.ok) {
-                return callback(new GenericError({
-                    log: "db.delete: error, body not ok",
-                    metadata: [coll, _id, _rev, body, headers]
-                }));
-            }
-            callback();
         });
     }
-
 
 }
 

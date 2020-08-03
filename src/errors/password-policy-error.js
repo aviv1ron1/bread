@@ -6,7 +6,8 @@ class PasswordPolicyError extends GenericError {
 		var status = 400;
 		var description = "Password does not meet required password policy. " + error;
 		var log = description;
-		super({ log, status, description });
+		var errType = "PasswordPolicyError";
+		super({ log, status, description, errType });
 	}
 }
 

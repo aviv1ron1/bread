@@ -260,7 +260,7 @@ var pandemi = {
 }
 
 var classic50PrecentWholeWheat = {
-    "hydration": 0.85,
+    "hydration": 0.8,
     "ingredients": [{
         "name": "whole wheat flour",
         "amount": 0.5,
@@ -408,7 +408,7 @@ test('test sourdough pre ferment gets calculated right from final weight', () =>
 });
 
 test('make the fucking recipe', () => {
-    var amounts = calculator.calculateAmountFromFinalWeight(250*4, pizza);
+    var amounts = calculator.calculateAmountFromFinalWeight(700*2, classic50PrecentWholeWheat);
     fs.writeFileSync("output.json", JSON.stringify(amounts))
     expect(amounts.ingredients).toBeDefined();
 });

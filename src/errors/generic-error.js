@@ -7,13 +7,15 @@ class GenericError {
         err = new Error(),
         description = "Sorry :( something went wrong",
         status = 500,
-        metadata = []
+        metadata = [],
+        errType = "GenericError"
     } = {}) {
         this.log = log;
         this.error = err;
         this.description = description;
-        this.status = status
-        this.metadata = metadata
+        this.status = status;
+        this.metadata = metadata;
+        this.errType = errType;
     }
 
 }
