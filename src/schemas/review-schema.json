@@ -4,10 +4,10 @@
     "type": "object",
     "properties": {
         "matconId": {
-            "type": "string"
+            "type": "integer"
         },
         "userId": {
-            "type": "string"
+            "type": "integer"
         },
         "score": {
             "type": "integer",
@@ -21,5 +21,5 @@
             "type": "string"
         }
     },
-    "required": ["matconId", "userId", "score", "content", "timestamp"]
+    "required": ["matconId", "userId", "score", "content"]
 }

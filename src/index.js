@@ -19,6 +19,7 @@ const registerSchema = require('./schemas/register-schema.json');
 const matconSchema = require('./schemas/matcon-schema.json');
 const reviewSchema = require('./schemas/review-schema.json');
 const userSchema = require('./schemas/user-schema.json');
+const dbMatconSchema = require('./schemas/db-matcon-schema.json');
 
 const config = require('./creds.json');
 
@@ -49,6 +50,7 @@ services.ajv.addSchema(registerSchema, "register");
 services.ajv.addSchema(matconSchema, "matcon");
 services.ajv.addSchema(reviewSchema, "review");
 services.ajv.addSchema(userSchema, "user");
+services.ajv.addSchema(dbMatconSchema, "db-matcon");
 
 
 var logger = bunyan.createLogger(config.logger);

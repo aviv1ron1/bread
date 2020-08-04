@@ -40,11 +40,7 @@ class Db {
     }
 
     getUser(id, callback) {
-        this.getSingle("select * from [User] where Id = @id", [{
-            name: "id",
-            type: sql.Int,
-            value: id
-        }], callback);
+        this.getById("User", id, callback);
     }
 
     deleteUser(email, callback) {
@@ -100,8 +96,24 @@ class Db {
 
     //////pre-register ----------------------------------------------------------------
 
-    setPreRegister(data, callback) {
-        this.insert("pre-register", data, (err, id) => {
+    addPreRegister(data, callback) {
+        this.insert('PreRegister', [{
+            name: "Email",
+            type: sql.NVarChar(320),
+            value: data.email
+        }, {
+            name: "Token",
+            type: sql.Char(100),
+            value: data.token
+        }, {
+            name: "Timestamp",
+            type: sql.DateTime,
+            value: data.timestamp
+        }, {
+            name: "EmailValidated",
+            type: sql.Bit,
+            value: data.emailValidated
+        }], (err, id) => {
             if (err) {
                 return callback(new GenericError({
                     log: "db.setPreRegister: error inserting to db",
@@ -110,96 +122,30 @@ class Db {
                 }));
             }
             callback(null, id);
-        });
+        })
     }
 
-    updatePreRegister(preRegister, callback) {
-        this.update("pre-register", preRegister, (err, id) => {
+    updatePreRegister(data, callback) {
+        this.update("PreRegister", data.id, [{
+            name: "Email",
+            type: sql.NVarChar(320),
+            value: data.email
+        }, {
+            name: "Token",
+            type: sql.Char(100),
+            value: data.token
+        }, {
+            name: "Timestamp",
+            type: sql.DateTime,
+            value: data.timestamp
+        }, {
+            name: "EmailValidated",
+            type: sql.Bit,
+            value: data.emailValidated
+        }], (err) => {
             if (err) {
                 return callback(new GenericError({
                     log: "db.updatePreRegister: error updating in db",
-                    err: err,
-                    metadata: [preRegister]
-                }));
-            }
-            callback(null, id);
-        })
-    }
-
-    removePreRegister(preRegister, callback) {
-        this.delete("pre-register", preRegister._id, preRegister._rev, (err) => {
-            if (err) {
-                return callback(new GenericError({
-                    log: "db.removePreRegister: error in delete",
-                    err: err,
-                    metadata: [id, rev]
-                }));
-            }
-            callback();
-        })
-
-    }
-
-    getPreRegister(id, callback) {
-        this.get("pre-register", id, (err, data) => {
-            if (err) {
-                if (err instanceof ItemNotFoundError) {
-                    return callback(err);
-                }
-                return callback(new GenericError({
-                    log: "db.getUserAuth: error in find",
-                    err: err,
-                    metadata: [token]
-                }));
-            }
-            callback(null, data);
-        })
-    }
-
-    deleteExpiredPreRegisters(expirationDays, callback) {
-        this.find("pre-register", {
-            timestamp: {
-                "$lte": moment().subtract(expirationDays, "d").format()
-            }
-        }, (err, results) => {
-            if (err) {
-                return callback(err)
-            }
-            this.db.use("pre-register").bulk({
-                docs: results.map((i) => {
-                    return {
-                        _id: i.id,
-                        _rev: i._rev,
-                        _deleted: true
-                    }
-                })
-            }, (err, body, headers) => {
-                if (err) {
-                    return callback(new GenericError({
-                        log: "db.deleteExpiredPreRegisters: error bulk deleting from db",
-                        err: err,
-                        metadata: [results, body, headers]
-                    }));
-                }
-                if (!body.ok) {
-                    return callback(new GenericError({
-                        log: "db.deleteExpiredPreRegisters: error, body not ok",
-                        metadata: [results, body, headers]
-                    }));
-                }
-                callback(null, results.length);
-            });
-        })
-    }
-
-
-    //////auth ----------------------------------------------------------------
-
-    setUserAuth(data, callback) {
-        this.insert("auth", data, (err) => {
-            if (err) {
-                return callback(new GenericError({
-                    log: "db.setUserAuth: error inserting to db",
                     err: err,
                     metadata: [data]
                 }));
@@ -208,145 +154,233 @@ class Db {
         })
     }
 
-    removeUserAuth(email, callback) {
-        this.find("auth", {
-            email: email
-        }, (err, data) => {
-            if (err) {
-                return callback(new GenericError({
-                    log: "db.removeUserAuth: error in find",
-                    err: err,
-                    metadata: [email]
-                }));
-            }
-            this.delete("auth", data[0]._id, data[0]._rev, (err) => {
-                if (err) {
-                    return callback(new GenericError({
-                        log: "db.removeUserAuth: error in delete",
-                        err: err,
-                        metadata: [email, data]
-                    }));
-                }
-                callback();
-            })
-
-        })
-    }
-
-    getUserAuth(token, callback) {
-        this.find("auth", {
-            token: token
-        }, (err, data) => {
-            if (err) {
-                return callback(new GenericError({
-                    log: "db.getUserAuth: error in find",
-                    err: err,
-                    metadata: [token]
-                }));
-            }
-            callback(null, data);
-        })
-    }
-
-
-    //////matconim ----------------------------------------------------------------
-
-    getMatcon(id, callback) {
-        this.get("matconim", id, (err, item) => {
+    removePreRegister(id, callback) {
+        this.delete("PreRegister", id, (err, deleted) => {
             if (err) {
                 if (err instanceof ItemNotFoundError) {
-                    return callback(err);
+                    return callback(err)
                 }
                 return callback(new GenericError({
-                    log: "db.getMatcon: error in find",
+                    log: "db.removePreRegister: error while deleting",
                     err: err,
                     metadata: [id]
+                }));
+            }
+            callback(null, deleted);
+        });
+    }
+
+    getPreRegister(id, callback) {
+        this.getById("PreRegister", id, callback);
+    }
+
+    deleteExpiredPreRegisters(expirationDays, callback) {
+        this.execute("DeleteOldPreRegisters", [{
+            name: "ExpirationDays",
+            type: sql.Int,
+            value: expirationDays
+        }], [], (err, result) => {
+            if (err) {
+                return callback(new GenericError({
+                    log: "db deleteExpiredPreRegisters error",
+                    err: err,
+                    metadata: [expirationDays]
                 }))
             }
-            callback(null, item);
+            callback(null, result.recordset[0].Deleted)
         })
     }
 
-    addMatcon(matcon, callback) {
-        if (!this.ajv.validate("matcon", matcon)) {
-            return callback(new SchemaValidationError("db.addMatcon: error validating recipe json schema", [matcon], ajv.errors));
-        }
-        this.insert("matconim", matcon, (err, id) => {
+
+    //////auth ----------------------------------------------------------------
+
+    addUserAuth(userId, token, data, callback) {
+        this.insert('UserAuth', [{
+            name: "UserId",
+            type: sql.Int,
+            value: userId
+        }, {
+            name: "Token",
+            type: sql.VarChar(100),
+            value: token
+        }, {
+            name: "Data",
+            type: sql.NVarChar,
+            value: JSON.stringify(data)
+        }], (err, id) => {
             if (err) {
                 return callback(new GenericError({
-                    log: "db.addMatcon: error inserting to db",
+                    log: "db.addUserAuth: error inserting to db",
                     err: err,
-                    metadata: [matcon]
+                    metadata: [userId, data]
                 }));
             }
             callback(null, id);
         })
     }
 
-    updateMatcon(matcon, callback) {
-        if (!this.ajv.validate("matcon", matcon)) {
-            return callback(new SchemaValidationError("db.updateMatcon: error validating recipe json schema", [matcon], ajv.errors));
-        }
-        this.update("matconim", matcon, (err) => {
+    removeUserAuth(email, callback) {
+        this.query("DELETE [UserAuth] FROM [UserAuth] INNER JOIN [User] on [UserAuth].[UserId] = [User].[Id] WHERE [Email] = @email", [{
+            name: "Email",
+            type: sql.NVarChar,
+            value: email
+        }], (err, result) => {
             if (err) {
-                if (err instanceof ItemNotFoundError) {
-                    return callback(err);
-                }
                 return callback(new GenericError({
-                    log: "db.updateMatcon: error inserting to db",
+                    log: "db.removeUserAuth: error while deleting",
                     err: err,
-                    metadata: [matcon]
+                    metadata: [email]
                 }));
             }
-            callback();
+            callback(null, result.rowsAffected);
+        });
+    }
+
+    getUserAuth(token, callback) {
+        this.getSingle("SELECT [User].* FROM [UserAuth] INNER JOIN [User] ON [UserAuth].[UserId] = [User].[Id] WHERE [Token] = @token", [{
+            name: "token",
+            type: sql.NVarChar,
+            value: token
+        }], callback);
+    }
+
+    //////matconim ----------------------------------------------------------------
+
+    getMatcon(id, callback) {
+        this.execute("GetMatcon", [{
+            name: "Id",
+            type: sql.Int,
+            value: id
+        }], [], (err, result) => {
+            if (err) {
+                return callback(new GenericError({
+                    log: "db getMatcon error",
+                    err: err,
+                    metadata: [id]
+                }))
+            }
+            callback(null, result.recordsets);
         })
     }
 
-    deleteMatcon(id, callback) {
-        this.getMatcon(id, (err, matcon) => {
+    addMatcon(matcon, callback) {
+        if (!this.ajv.validate("db-matcon", matcon)) {
+            return callback(new SchemaValidationError("db.addMatcon: error validating recipe json schema", [matcon], ajv.errors));
+        }
+        var userId = matcon.userId;
+        delete matcon.userId;
+        var name = matcon.name;
+        delete matcon.name;
+        this.insert('Matcon', [{
+            name: "UserId",
+            type: sql.Int,
+            value: userId
+        }, {
+            name: "Name",
+            type: sql.NVarChar(200),
+            value: name
+        }, {
+            name: "Rating",
+            type: sql.Float,
+            value: 0
+        }, {
+            name: "Data",
+            type: sql.NVarChar,
+            value: JSON.stringify(matcon)
+        }], (err, id) => {
+            if (err) {
+                return callback(new GenericError({
+                    log: "db.addMatcon: error inserting to db",
+                    err: err,
+                    metadata: [userId, name, matcon]
+                }));
+            }
+            callback(null, id);
+        })
+    }
+
+    updateMatcon(id, matcon, callback) {
+        if (!this.ajv.validate("matcon", matcon)) {
+            return callback(new SchemaValidationError("db.updateMatcon: error validating recipe json schema", [id, matcon], ajv.errors));
+        }
+        delete matcon.userId;
+        var name = matcon.name;
+        delete matcon.name;
+        this.update("Matcon", id, [{
+            name: "Name",
+            type: sql.NVarChar(200),
+            value: name
+        }, {
+            name: "Data",
+            type: sql.NVarChar,
+            value: JSON.stringify(matcon)
+        }], (err) => {
             if (err) {
                 if (err instanceof ItemNotFoundError) {
                     return callback(err);
                 }
                 return callback(new GenericError({
-                    log: "db.deleteMatcon: error in getMatcon",
+                    log: "db.updateMatcon: error updating to db",
+                    err: err,
+                    metadata: [id, matcon]
+                }));
+            }
+            callback();
+        });
+    }
+
+    deleteMatcon(id, callback) {
+        this.delete("Matcon", id, (err, deleted) => {
+            if (err) {
+                if (err instanceof ItemNotFoundError) {
+                    return callback(err)
+                }
+                return callback(new GenericError({
+                    log: "db.deleteMatcon: error while deleting",
                     err: err,
                     metadata: [id]
                 }));
             }
-            this.delete("matconim", matcon._id, matcon._rev, (err) => {
-                if (err) {
-                    return callback(new GenericError({
-                        log: "db.deleteMatcon: error in delete",
-                        err: err,
-                        metadata: [id, matcon]
-                    }));
-                }
-                callback();
-            })
-        })
+            callback(null, deleted);
+        });
     }
 
     //reviews -------------------------------------------------------------------------------
 
     addReview(review, callback) {
         if (!this.ajv.validate("review", review)) {
-            return callback(new SchemaValidationError("db.addMatcon: error validating review json schema", [review], ajv.errors));
+            return callback(new SchemaValidationError("db.addReview: error validating review json schema", [review], this.ajv.errors));
         }
-        this.insert("reviews", review, (err, id) => {
+        this.execute("AddReview", [{
+            name: "MatconId",
+            type: sql.Int,
+            value: review.matconId
+        }, {
+            name: "Rating",
+            type: sql.Int,
+            value: review.score
+        }, {
+            name: "UserId",
+            type: sql.Int,
+            value: review.userId
+        }, {
+            name: "Data",
+            type: sql.NVarChar,
+            value: review.content
+        }], [], (err, result) => {
             if (err) {
                 return callback(new GenericError({
-                    log: "db.addReview: error inserting to db",
+                    log: "db addReview error",
                     err: err,
                     metadata: [review]
-                }));
+                }))
             }
-            callback(null, id);
+            callback();
         })
     }
 
     getReview(id, callback) {
-        this.get("reviews", id, (err, item) => {
+        this.getById("MatconRating", id, (err, item) => {
             if (err) {
                 if (err instanceof ItemNotFoundError) {
                     return callback(err);
@@ -361,88 +395,96 @@ class Db {
         })
     }
 
-    updateReview(review, callback) {
-        if (!this.ajv.validate("reviews", review)) {
-            return callback(new SchemaValidationError("db.updateReview: error validating review json schema", [review], ajv.errors));
-        }
-        this.update("reviews", review, (err) => {
+    deleteReview(id, callback) {
+        this.execute("DeleteReview", [{
+            name: "Id",
+            type: sql.Int,
+            value: id
+        }], [], (err, result) => {
             if (err) {
-                if (err instanceof ItemNotFoundError) {
-                    return callback(err);
-                }
                 return callback(new GenericError({
-                    log: "db.updateReview: error inserting to db",
+                    log: "db deleteReview error",
                     err: err,
-                    metadata: [review]
-                }));
+                    metadata: [id]
+                }))
             }
             callback();
         })
     }
 
-    deleteReview(id, callback) {
-        this.getReview(id, (err, review) => {
+     getReviewsForMatcon(matconId, callback) {
+        this.get("SELECT * FROM [MatconRating] WHERE [MatconId] = @MatconId ORDER BY [Timestamp] DESC", [{
+            name: "MatconId",
+            type: sql.Int,
+            value: matconId
+        }], (err, results) => {
             if (err) {
                 if (err instanceof ItemNotFoundError) {
                     return callback(err);
                 }
                 return callback(new GenericError({
-                    log: "db.deleteReview: error in getReview",
-                    err: err,
-                    metadata: [id]
-                }));
-            }
-            this.delete("reviews", review._id, review._rev, (err) => {
-                if (err) {
-                    return callback(new GenericError({
-                        log: "db.deleteReview: error in delete",
-                        err: err,
-                        metadata: [id, review]
-                    }));
-                }
-                callback();
-            })
-        })
-    }
-
-    getReviewsForMatcon(matconId, callback) {
-        this.find("reviews", {
-            matconId: matconId
-        }, (err, results) => {
-            if (err) {
-                if (err instanceof ItemNotFoundError) {
-                    return callback(err);
-                }
-                return callback(new GenericError({
-                    log: "db.getReviewsForMatcon: error in find",
+                    log: "db.getReviewsForMatcon: error in get",
                     err: err,
                     metadata: [matconId]
                 }));
             }
-            callback(null, results);
+            callback(null, results.recordset);
         })
     }
 
     getReviewsForUser(userId, callback) {
-        this.find("reviews", {
-            userId: userId
-        }, (err, results) => {
+        this.get("SELECT * FROM [MatconRating] WHERE [UserId] = @UserId ORDER BY [Timestamp] DESC", [{
+            name: "UserId",
+            type: sql.Int,
+            value: userId
+        }], (err, results) => {
             if (err) {
                 if (err instanceof ItemNotFoundError) {
                     return callback(err);
                 }
                 return callback(new GenericError({
-                    log: "db.getReviewsForUser: error in find",
+                    log: "db.getReviewsForUser: error in get",
                     err: err,
-                    metadata: [matconId]
+                    metadata: [userId]
                 }));
             }
-            callback(null, results);
+            callback(null, results.recordset);
         })
     }
 
+    //tags ----------------------------------------------------------------------------------
+
+    addMatconTags(matconId, tags, callback) {
+        //TODO: add tags
+    }
+
+    //TODO: getTags(search, callback)
+
+    //TODO: getPopularTags(callback)
+
 
     //basic generic crud --------------------------------------------------------------------
+
+    execute(storedProcedure, inParams, outParams, callback) {
+        var self = this;
+        var request = new sql.Request();
+        inParams.forEach((param) => {
+            request.input(param.name, param.type, param.value);
+        });
+        outParams.forEach((param) => {
+            request.output(param.name, param.type);
+        });
+        request.execute(storedProcedure, (err, result) => {
+            if (err) {
+                return callback(new GenericError({
+                    log: "db execute error",
+                    err: err,
+                    metadata: [storedProcedure, inParams, outParams]
+                }))
+            }
+            callback(null, result);
+        })
+    }
 
     query(query, params, callback) {
         var self = this;
@@ -508,25 +550,25 @@ class Db {
     }
 
 
-    update(coll, document, callback) {
-        this.cloudant.use(coll).insert(document, (err, body, headers) => {
+    update(table, id, params, callback) {
+        var q = "update [" + table + "] set " + params.map(i => "[" + i.name + "] = @" + i.name).join(",") + " where [Id] = @id";
+        params.push({
+            name: "id",
+            type: sql.Int,
+            value: id
+        })
+        this.query(q, params, (err, result) => {
             if (err) {
                 return callback(new GenericError({
-                    log: "db.update: error",
                     err: err,
-                    metadata: [coll, document]
+                    log: "db update error",
+                    metadata: [table, id, params, q]
                 }));
             }
-            if (!body.ok) {
-                return callback(new GenericError({
-                    log: "db.update: error, body not ok",
-                    metadata: [coll, document, body, headers]
-                }));
+            if (result.rowsAffected < 1) {
+                return callback(new ItemNotFoundError("update rowsAffected = 0", [table, id, params, q]));
             }
-            callback(null, {
-                id: body.id,
-                rev: body.rev
-            });
+            callback();
         })
     }
 
@@ -556,7 +598,6 @@ class Db {
         });
     }
 
-
     getSingle(query, params, callback) {
         this.get(query, params, (err, result) => {
             if (err) {
@@ -571,6 +612,15 @@ class Db {
         })
     }
 
+    getById(table, id, callback) {
+        this.getSingle("select * from [" + table + "] where Id = @id", [{
+            name: "id",
+            type: sql.Int,
+            value: id
+        }], callback);
+    }
+
+
     delete(table, id, callback) {
         this.query("delete from [" + table + "] where Id = @id", [{
             name: "id",
@@ -582,6 +632,20 @@ class Db {
             } else {
                 if (result.rowsAffected < 1) {
                     return callback(new ItemNotFoundError("db delete not found", [table, id]));
+                }
+                callback(null, result.rowsAffected);
+            }
+        });
+    }
+
+    deleteWhere(table, params, callback) {
+        var where = params.map(i => "[" + i.name + "] = @" + i.name).join(" AND ")
+        this.query("delete from [" + table + "] where " + where, params, (err, result) => {
+            if (err) {
+                callback(err);
+            } else {
+                if (result.rowsAffected < 1) {
+                    return callback(new ItemNotFoundError("db deleteWhere not found", [table, params]));
                 }
                 callback(null, result.rowsAffected);
             }

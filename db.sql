@@ -1,49 +1,4 @@
-/****** Object:  Database [bread]    Script Date: 02/08/2020 19:36:12 ******/
-CREATE DATABASE [bread]  (EDITION = 'GeneralPurpose', SERVICE_OBJECTIVE = 'GP_Gen5_2', MAXSIZE = 32 GB) WITH CATALOG_COLLATION = SQL_Latin1_General_CP1_CI_AS;
-GO
-ALTER DATABASE [bread] SET COMPATIBILITY_LEVEL = 150
-GO
-ALTER DATABASE [bread] SET ANSI_NULL_DEFAULT OFF 
-GO
-ALTER DATABASE [bread] SET ANSI_NULLS OFF 
-GO
-ALTER DATABASE [bread] SET ANSI_PADDING OFF 
-GO
-ALTER DATABASE [bread] SET ANSI_WARNINGS OFF 
-GO
-ALTER DATABASE [bread] SET ARITHABORT OFF 
-GO
-ALTER DATABASE [bread] SET AUTO_SHRINK OFF 
-GO
-ALTER DATABASE [bread] SET AUTO_UPDATE_STATISTICS ON 
-GO
-ALTER DATABASE [bread] SET CURSOR_CLOSE_ON_COMMIT OFF 
-GO
-ALTER DATABASE [bread] SET CONCAT_NULL_YIELDS_NULL OFF 
-GO
-ALTER DATABASE [bread] SET NUMERIC_ROUNDABORT OFF 
-GO
-ALTER DATABASE [bread] SET QUOTED_IDENTIFIER OFF 
-GO
-ALTER DATABASE [bread] SET RECURSIVE_TRIGGERS OFF 
-GO
-ALTER DATABASE [bread] SET AUTO_UPDATE_STATISTICS_ASYNC OFF 
-GO
-ALTER DATABASE [bread] SET ALLOW_SNAPSHOT_ISOLATION ON 
-GO
-ALTER DATABASE [bread] SET PARAMETERIZATION SIMPLE 
-GO
-ALTER DATABASE [bread] SET READ_COMMITTED_SNAPSHOT ON 
-GO
-ALTER DATABASE [bread] SET  MULTI_USER 
-GO
-ALTER DATABASE [bread] SET ENCRYPTION ON
-GO
-ALTER DATABASE [bread] SET QUERY_STORE = ON
-GO
-ALTER DATABASE [bread] SET QUERY_STORE (OPERATION_MODE = READ_WRITE, CLEANUP_POLICY = (STALE_QUERY_THRESHOLD_DAYS = 30), DATA_FLUSH_INTERVAL_SECONDS = 900, INTERVAL_LENGTH_MINUTES = 60, MAX_STORAGE_SIZE_MB = 100, QUERY_CAPTURE_MODE = AUTO, SIZE_BASED_CLEANUP_MODE = AUTO, MAX_PLANS_PER_QUERY = 200, WAIT_STATS_CAPTURE_MODE = ON)
-GO
-/****** Object:  Table [dbo].[Matcon]    Script Date: 02/08/2020 19:36:13 ******/
+/****** Object:  Table [dbo].[Matcon]    Script Date: 04/08/2020 17:26:42 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -52,6 +7,7 @@ CREATE TABLE [dbo].[Matcon](
 	[Id] [int] IDENTITY(1,1) NOT NULL,
 	[UserId] [int] NOT NULL,
 	[Name] [nvarchar](200) NOT NULL,
+	[Rating] [float] NOT NULL,
 	[Data] [nvarchar](max) NOT NULL,
  CONSTRAINT [PK_Matcon] PRIMARY KEY CLUSTERED 
 (
@@ -59,7 +15,7 @@ CREATE TABLE [dbo].[Matcon](
 )WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[MatconRating]    Script Date: 02/08/2020 19:36:13 ******/
+/****** Object:  Table [dbo].[MatconRating]    Script Date: 04/08/2020 17:26:42 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -77,7 +33,7 @@ CREATE TABLE [dbo].[MatconRating](
 )WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[MatconTag]    Script Date: 02/08/2020 19:36:13 ******/
+/****** Object:  Table [dbo].[MatconTag]    Script Date: 04/08/2020 17:26:42 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -92,7 +48,7 @@ CREATE TABLE [dbo].[MatconTag](
 )WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[PreRegister]    Script Date: 02/08/2020 19:36:13 ******/
+/****** Object:  Table [dbo].[PreRegister]    Script Date: 04/08/2020 17:26:42 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -109,7 +65,7 @@ CREATE TABLE [dbo].[PreRegister](
 )WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[User]    Script Date: 02/08/2020 19:36:13 ******/
+/****** Object:  Table [dbo].[User]    Script Date: 04/08/2020 17:26:42 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -124,7 +80,7 @@ CREATE TABLE [dbo].[User](
 )WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[UserAuth]    Script Date: 02/08/2020 19:36:13 ******/
+/****** Object:  Table [dbo].[UserAuth]    Script Date: 04/08/2020 17:26:42 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -132,28 +88,13 @@ GO
 CREATE TABLE [dbo].[UserAuth](
 	[Id] [int] IDENTITY(1,1) NOT NULL,
 	[UserId] [int] NOT NULL,
+	[Token] [varchar](100) NOT NULL,
 	[Data] [nvarchar](max) NOT NULL,
  CONSTRAINT [PK_UserAuth] PRIMARY KEY CLUSTERED 
 (
 	[Id] ASC
 )WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
-GO
-SET ANSI_PADDING ON
-GO
-/****** Object:  Index [IX_Matcon]    Script Date: 02/08/2020 19:36:13 ******/
-CREATE NONCLUSTERED INDEX [IX_Matcon] ON [dbo].[Matcon]
-(
-	[Name] ASC
-)WITH (STATISTICS_NORECOMPUTE = OFF, DROP_EXISTING = OFF, ONLINE = OFF) ON [PRIMARY]
-GO
-SET ANSI_PADDING ON
-GO
-/****** Object:  Index [IX_User_Email]    Script Date: 02/08/2020 19:36:13 ******/
-CREATE UNIQUE NONCLUSTERED INDEX [IX_User_Email] ON [dbo].[User]
-(
-	[Email] ASC
-)WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF) ON [PRIMARY]
 GO
 ALTER TABLE [dbo].[PreRegister] ADD  CONSTRAINT [DF_PreRegister_EmailValidated]  DEFAULT ((0)) FOR [EmailValidated]
 GO
@@ -186,5 +127,102 @@ ON DELETE CASCADE
 GO
 ALTER TABLE [dbo].[UserAuth] CHECK CONSTRAINT [FK_UserAuth_User]
 GO
-ALTER DATABASE [bread] SET  READ_WRITE 
+/****** Object:  StoredProcedure [dbo].[DeleteOldPreRegisters]    Script Date: 04/08/2020 17:26:42 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [dbo].[DeleteOldPreRegisters]
+(
+    -- Add the parameters for the stored procedure here
+    @ExpirationDays int = 3
+)
+AS
+BEGIN
+    -- SET NOCOUNT ON added to prevent extra result sets FROM
+    -- interfering with SELECT statements.
+    SET NOCOUNT ON
+
+    -- Insert statements for procedure here
+    DELETE FROM PreRegister WHERE [Timestamp] < DATEADD(day, @ExpirationDays*-1, GETDATE())
+	
+	SELECT @@ROWCOUNT as [Deleted]
+END
+GO
+/****** Object:  StoredProcedure [dbo].[GetMatcon]    Script Date: 04/08/2020 17:26:42 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE PROCEDURE [dbo].[GetMatcon]
+(
+    @Id int = 0
+)
+AS
+BEGIN
+    SET NOCOUNT ON
+
+	SELECT * FROM [Matcon] WHERE [Id] = @Id
+
+	SELECT [User].[Data] FROM [User] INNER JOIN [Matcon] ON [Matcon].[UserId] = [User].[Id] WHERE [Matcon].[Id] = @Id
+
+	SELECT AVG([MatconRating].[Rating]) AS [Rating], COUNT([MatconRating].[Id]) AS [RatingCount] FROM [MatconRating] WHERE [MatconRating].[MatconId] = @Id
+
+	SELECT [MatconTag].[Id], [MatconTag].[Tag] FROM [MatconTag] WHERE [MatconTag].[MatconId] = @Id
+
+    
+END
+GO
+
+/****** Object:  StoredProcedure [dbo].[AddReview]    Script Date: 04/08/2020 17:26:42 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE PROCEDURE [dbo].[AddReview]
+(
+    @MatconId INT,
+	@Rating INT,
+	@UserId INT,
+	@Data NVARCHAR(MAX)
+)
+AS
+BEGIN
+    SET NOCOUNT ON
+
+	DELETE FROM [MatconRating] WHERE [MatconId] = @MatconId AND [UserId] = @UserId
+
+	INSERT INTO [MatconRating] VALUES (@MatconId, @UserId, GETDATE(), @Rating, @Data);
+
+	UPDATE [Matcon] SET [Rating] = (SELECT AVG(Cast([MatconRating].[Rating] as Float)) FROM [MatconRating] WHERE [MatconId] = @MatconId)
+
+END
+GO
+
+/****** Object:  StoredProcedure [dbo].[DeleteReview]    Script Date: 04/08/2020 17:26:42 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE PROCEDURE [dbo].[DeleteReview]
+(
+    @Id INT
+)
+AS
+BEGIN
+    SET NOCOUNT ON
+
+	DECLARE @MatconId INT;
+
+	SET @MatconId = (SELECT [MatconId] FROM [MatconRating] WHERE [Id] = @Id)
+
+	DELETE FROM [MatconRating] WHERE [Id] = @Id
+
+	UPDATE [Matcon] SET [Rating] = ISNULL((SELECT AVG(Cast([MatconRating].[Rating] as Float)) FROM [MatconRating] WHERE [MatconId] = @MatconId), 0)
+
+END
 GO

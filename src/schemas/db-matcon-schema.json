@@ -1,0 +1,120 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "title": "Recipe",
+    "type": "object",
+    "definitions": {
+        "ingredient": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "name of the ingredient"
+                },
+                "type": {
+                    "enum": ["flour", "hydration", "madre"],
+                    "description": "indicates wether this is a flour, a hydration (water, oil, milk egs etc) or a madre (sourdough mother)"
+                },
+                "calculate": {
+                    "type": "boolean"
+                },
+                "hydration": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                },
+                "pre": {
+                    "type": "boolean"
+                },
+                "amount": {
+                    "description": "the amount of the ingredient, either in bakers precentage from the total flour inthe recipe or as a bakers precentage from a specific flour",
+                    "anyOf": [{
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                    }, {
+                        "type": "object",
+                        "properties": {
+                            "from": {
+                                "type": "string"
+                            },
+                            "precent": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "maximum": 1
+                            }
+                        },
+                        "required": ["from", "precent"]
+                    }]
+                },
+                "ingredients": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingredient"
+                    }
+                }
+            },
+            "required": ["name"]
+        },
+        "timing": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "time": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "link": {
+                    "type": "string"
+                }
+            },
+            "required": ["name", "time"]
+        }
+    },
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "the name of the recipe"
+        },
+        "description": {
+            "type": "string"
+        },
+        "hydration": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "hydration in bakers precentage"
+        },
+        "weight": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "default loaf weight"
+        },
+        "temperature": {
+            "type": "string",
+            "description": "recommended baking temp"
+        },
+        "userId": {
+            "type": "number"
+        },
+        "rating": {
+            "type": "number"
+        },
+        "ingredients": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+                "$ref": "#/definitions/ingredient"
+            }
+        },
+        "times": {
+            "type": "array",
+            "description": "definition of the steps of the recipe with timings",
+            "minItems": 2,
+            "items": {
+                "$ref": "#/definitions/timing"
+            }
+        }
+    },
+    "required": ["name", "userId", "description", "hydration", "weight", "ingredients", "times"]
+}
