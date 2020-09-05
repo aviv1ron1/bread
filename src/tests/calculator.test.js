@@ -330,6 +330,98 @@ var pizza = {
     }]
 }
 
+var fuccacia = {
+    "hydration": 0.8,
+    "ingredients": [{
+        "name": "bread flour",
+        "amount": 0.7,
+        "type": "flour"
+    }, {
+        "name": "manitoba flour",
+        "amount": 0.3,
+        "type": "flour"
+    }, {
+        "name": "salt",
+        "amount": 0.02
+    }, {
+        "name": "yeast",
+        "amount": 0.003
+    }, {
+        "name": "water",
+        "type": "hydration",
+        "calculate": true
+    }, {
+        "name": "olive oil",
+        "type": "hydration",
+        "amount": 0.05
+    }, {
+        "name": "sourdough",
+        "hydration": 0.65,
+        "amount": 0.05
+    }]
+}
+
+var PanDoCampanie = {
+    "hydration": 0.7,
+    "ingredients": [{
+        "name": "whole wheat flour",
+        "amount": 0.1,
+        "type": "flour"
+    }, {
+        "name": "rye flour",
+        "amount": 0.05,
+        "type": "flour"
+    }, {
+        "name": "cafri flour",
+        "amount": 0.45,
+        "type": "flour"
+    }, {
+        "name": "strong white flour",
+        "amount": 0.4,
+        "type": "flour"
+    }, {
+        "name": "salt",
+        "type": "hydration",
+        "amount": 0.02
+    }, {
+        "name": "oil",
+        "type": "hydration",
+        "amount": 0.025
+    }, {
+        "name": "water",
+        "type": "hydration",
+        "calculate": true
+    }, {
+        "name": "starter",
+        "hydration": 0.65,
+        "pre": true,
+        "ingredients": [{
+            "name": "whole wheat flour",
+            "type": "flour",
+            "amount": {
+                "precent": 0.1,
+                "from": "whole wheat flour"
+            }
+        }, {
+            "name": "rye flour",
+            "type": "flour",
+            "amount": {
+                "precent": 0.05,
+                "from": "rye flour"
+            }
+        }, {
+            "name": "water",
+            "calculate": true,
+            "type": "hydration"
+        }, {
+            "name": "madre",
+            "amount": 0.33,
+            "type": "madre",
+            "hydration": 0.65
+        }]
+    }]
+}
+
 test('select returns selected items', () => {
     var s = calculator.select([{
         "a": "a"
@@ -408,7 +500,7 @@ test('test sourdough pre ferment gets calculated right from final weight', () =>
 });
 
 test('make the fucking recipe', () => {
-    var amounts = calculator.calculateAmountFromFinalWeight(700*2, classic50PrecentWholeWheat);
+    var amounts = calculator.calculateAmountFromFinalWeight(100*16, hamburger);
     fs.writeFileSync("output.json", JSON.stringify(amounts))
     expect(amounts.ingredients).toBeDefined();
 });
