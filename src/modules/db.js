@@ -1,4 +1,5 @@
-const sql = require('mssql');
+//const sql = require('mssql');
+const sql = require('mysql');
 var nou = require("nou");
 const SchemaValidationError = require('../errors/schema-validation-error.js');
 const GenericError = require('../errors/generic-error.js');
@@ -19,28 +20,35 @@ class Db {
 
     connect(callback) {
         var self = this;
-        sql.on('error', err => {
-            self.logger.error(err, "unexpected error in db");
-            throw err;
-        })
-        sql.connect(this.creds).then((pool) => {
-            self.pool = pool;
-            callback();
-        })
+
+        this.connection = sql.createPool({
+            connectionLimit: this.creds.connectionLimit,
+            host: this.creds.endpoint,
+            user: this.creds.user,
+            password: this.creds.password,
+            database: this.creds.db
+        });
+
+        callback();
+
+        // this.connection.connect(function(err) {
+        //     if (err) {
+        //         self.logger.error(err, 'error connecting to mysql');
+        //         return callback(err);
+        //     }
+        //     callback();
+        // });
+
     }
 
     //////user ----------------------------------------------------------------
 
     getUserByEmail(email, callback) {
-        this.getSingle("select * from [User] where Email = @email", [{
-            name: "email",
-            type: sql.NVarChar(320),
-            value: email
-        }], callback);
+        this.getSingle("select * from `user` where `Email` = ?", [email], callback);
     }
 
     getUser(id, callback) {
-        this.getById("User", id, callback);
+        this.getById("user", id, callback);
     }
 
     deleteUser(email, callback) {
@@ -56,7 +64,7 @@ class Db {
                     }));
                 }
             }
-            this.delete("User", doc.Id, (err, deleted) => {
+            this.delete("user", doc.Id, (err, deleted) => {
                 if (err) {
                     if (err instanceof ItemNotFoundError) {
                         return callback(err)
@@ -74,20 +82,15 @@ class Db {
     }
 
     addUser(email, data, callback) {
-        this.insert('User', [{
-            name: "Email",
-            type: sql.NVarChar(320),
-            value: email
-        }, {
-            name: "Data",
-            type: sql.NVarChar,
-            value: JSON.stringify(data)
-        }], (err, id) => {
+        this.insert('user', {
+            "Email": email,
+            "Data": JSON.stringify(data)
+        }, (err, id) => {
             if (err) {
                 return callback(new GenericError({
                     log: "db.addUser: error inserting to db",
                     err: err,
-                    metadata: [data]
+                    metadata: [email, data]
                 }));
             }
             callback(null, id);
@@ -97,23 +100,12 @@ class Db {
     //////pre-register ----------------------------------------------------------------
 
     addPreRegister(data, callback) {
-        this.insert('PreRegister', [{
-            name: "Email",
-            type: sql.NVarChar(320),
-            value: data.email
-        }, {
-            name: "Token",
-            type: sql.Char(100),
-            value: data.token
-        }, {
-            name: "Timestamp",
-            type: sql.DateTime,
-            value: data.timestamp
-        }, {
-            name: "EmailValidated",
-            type: sql.Bit,
-            value: data.emailValidated
-        }], (err, id) => {
+        this.insert('preregister', {
+            "Email": data.email,
+            "Token": data.token,
+            "Timestamp": data.timestamp,
+            "EmailValidated": data.emailValidated
+        }, (err, id) => {
             if (err) {
                 return callback(new GenericError({
                     log: "db.setPreRegister: error inserting to db",
@@ -126,23 +118,12 @@ class Db {
     }
 
     updatePreRegister(data, callback) {
-        this.update("PreRegister", data.id, [{
-            name: "Email",
-            type: sql.NVarChar(320),
-            value: data.email
-        }, {
-            name: "Token",
-            type: sql.Char(100),
-            value: data.token
-        }, {
-            name: "Timestamp",
-            type: sql.DateTime,
-            value: data.timestamp
-        }, {
-            name: "EmailValidated",
-            type: sql.Bit,
-            value: data.emailValidated
-        }], (err) => {
+        this.update("preregister", data.id, {
+            "Email": data.email,
+            "Token": data.token,
+            "Timestamp": data.timestamp,
+            "EmailValidated": data.emailValidated
+        }, (err) => {
             if (err) {
                 return callback(new GenericError({
                     log: "db.updatePreRegister: error updating in db",
@@ -155,7 +136,7 @@ class Db {
     }
 
     removePreRegister(id, callback) {
-        this.delete("PreRegister", id, (err, deleted) => {
+        this.delete("preregister", id, (err, deleted) => {
             if (err) {
                 if (err instanceof ItemNotFoundError) {
                     return callback(err)
@@ -171,15 +152,13 @@ class Db {
     }
 
     getPreRegister(id, callback) {
-        this.getById("PreRegister", id, callback);
+        this.getById("preregister", id, callback);
     }
 
     deleteExpiredPreRegisters(expirationDays, callback) {
-        this.execute("DeleteOldPreRegisters", [{
-            name: "ExpirationDays",
-            type: sql.Int,
-            value: expirationDays
-        }], [], (err, result) => {
+        this.execute("DeleteOldPreRegisters", {
+            "ExpirationDays": expirationDays
+        }, (err, result) => {
             if (err) {
                 return callback(new GenericError({
                     log: "db deleteExpiredPreRegisters error",
@@ -195,19 +174,11 @@ class Db {
     //////auth ----------------------------------------------------------------
 
     addUserAuth(userId, token, data, callback) {
-        this.insert('UserAuth', [{
-            name: "UserId",
-            type: sql.Int,
-            value: userId
-        }, {
-            name: "Token",
-            type: sql.VarChar(100),
-            value: token
-        }, {
-            name: "Data",
-            type: sql.NVarChar,
-            value: JSON.stringify(data)
-        }], (err, id) => {
+        this.insert('userauth', {
+            "UserId": userId,
+            "Token": token,
+            "Data": JSON.stringify(data)
+        }, (err, id) => {
             if (err) {
                 return callback(new GenericError({
                     log: "db.addUserAuth: error inserting to db",
@@ -220,11 +191,7 @@ class Db {
     }
 
     removeUserAuth(email, callback) {
-        this.query("DELETE [UserAuth] FROM [UserAuth] INNER JOIN [User] on [UserAuth].[UserId] = [User].[Id] WHERE [Email] = @email", [{
-            name: "Email",
-            type: sql.NVarChar,
-            value: email
-        }], (err, result) => {
+        this.query("DELETE `userauth` FROM `userauth` INNER JOIN `user` on `userauth`.`UserId` = `user`.`Id` WHERE `Email` = ?l", [email], (err, result) => {
             if (err) {
                 return callback(new GenericError({
                     log: "db.removeUserAuth: error while deleting",
@@ -232,26 +199,20 @@ class Db {
                     metadata: [email]
                 }));
             }
-            callback(null, result.rowsAffected);
+            callback(null, result.affectedRows);
         });
     }
 
     getUserAuth(token, callback) {
-        this.getSingle("SELECT [User].* FROM [UserAuth] INNER JOIN [User] ON [UserAuth].[UserId] = [User].[Id] WHERE [Token] = @token", [{
-            name: "token",
-            type: sql.NVarChar,
-            value: token
-        }], callback);
+        this.getSingle("SELECT `user`.* FROM `userauth` INNER JOIN `user` ON `userauth`.`UserId` = `user`.`Id` WHERE `Token` = ?", [token], callback);
     }
 
     //////matconim ----------------------------------------------------------------
 
     getMatcon(id, callback) {
-        this.execute("GetMatcon", [{
-            name: "Id",
-            type: sql.Int,
-            value: id
-        }], [], (err, result) => {
+        this.execute("GetMatcon", {
+            "Id": id
+        }, (err, result) => {
             if (err) {
                 return callback(new GenericError({
                     log: "db getMatcon error",
@@ -259,7 +220,7 @@ class Db {
                     metadata: [id]
                 }))
             }
-            callback(null, result.recordsets);
+            callback(null, result);
         })
     }
 
@@ -271,23 +232,12 @@ class Db {
         delete matcon.userId;
         var name = matcon.name;
         delete matcon.name;
-        this.insert('Matcon', [{
-            name: "UserId",
-            type: sql.Int,
-            value: userId
-        }, {
-            name: "Name",
-            type: sql.NVarChar(200),
-            value: name
-        }, {
-            name: "Rating",
-            type: sql.Float,
-            value: 0
-        }, {
-            name: "Data",
-            type: sql.NVarChar,
-            value: JSON.stringify(matcon)
-        }], (err, id) => {
+        this.insert('matcon', {
+            "UserId": userId,
+            "Name": name,
+            "Rating": 0,
+            "Data": JSON.stringify(matcon)
+        }, (err, id) => {
             if (err) {
                 return callback(new GenericError({
                     log: "db.addMatcon: error inserting to db",
@@ -306,15 +256,10 @@ class Db {
         delete matcon.userId;
         var name = matcon.name;
         delete matcon.name;
-        this.update("Matcon", id, [{
-            name: "Name",
-            type: sql.NVarChar(200),
-            value: name
-        }, {
-            name: "Data",
-            type: sql.NVarChar,
-            value: JSON.stringify(matcon)
-        }], (err) => {
+        this.update("matcon", id, {
+            "Name": name,
+            "Data": JSON.stringify(matcon)
+        }, (err) => {
             if (err) {
                 if (err instanceof ItemNotFoundError) {
                     return callback(err);
@@ -330,7 +275,7 @@ class Db {
     }
 
     deleteMatcon(id, callback) {
-        this.delete("Matcon", id, (err, deleted) => {
+        this.delete("matcon", id, (err, deleted) => {
             if (err) {
                 if (err instanceof ItemNotFoundError) {
                     return callback(err)
@@ -351,23 +296,12 @@ class Db {
         if (!this.ajv.validate("review", review)) {
             return callback(new SchemaValidationError("db.addReview: error validating review json schema", [review], this.ajv.errors));
         }
-        this.execute("AddReview", [{
-            name: "MatconId",
-            type: sql.Int,
-            value: review.matconId
-        }, {
-            name: "Rating",
-            type: sql.Int,
-            value: review.score
-        }, {
-            name: "UserId",
-            type: sql.Int,
-            value: review.userId
-        }, {
-            name: "Data",
-            type: sql.NVarChar,
-            value: review.content
-        }], [], (err, result) => {
+        this.execute("AddReview", {
+            "MatconId": review.matconId,
+            "Rating": review.score,
+            "UserId": review.userId,
+            "Data": review.content
+        }, (err, result) => {
             if (err) {
                 return callback(new GenericError({
                     log: "db addReview error",
@@ -380,13 +314,13 @@ class Db {
     }
 
     getReview(id, callback) {
-        this.getById("MatconRating", id, (err, item) => {
+        this.getById("matconrating", id, (err, item) => {
             if (err) {
                 if (err instanceof ItemNotFoundError) {
                     return callback(err);
                 }
                 return callback(new GenericError({
-                    log: "db.getReview: error in find",
+                    log: "db.getReview: error",
                     err: err,
                     metadata: [id]
                 }))
@@ -396,11 +330,9 @@ class Db {
     }
 
     deleteReview(id, callback) {
-        this.execute("DeleteReview", [{
-            name: "Id",
-            type: sql.Int,
-            value: id
-        }], [], (err, result) => {
+        this.execute("DeleteReview", {
+            "Id": id
+        }, (err, result) => {
             if (err) {
                 return callback(new GenericError({
                     log: "db deleteReview error",
@@ -412,12 +344,8 @@ class Db {
         })
     }
 
-     getReviewsForMatcon(matconId, callback) {
-        this.get("SELECT * FROM [MatconRating] WHERE [MatconId] = @MatconId ORDER BY [Timestamp] DESC", [{
-            name: "MatconId",
-            type: sql.Int,
-            value: matconId
-        }], (err, results) => {
+    getReviewsForMatcon(matconId, callback) {
+        this.get("SELECT * FROM `matconrating` WHERE `MatconId` = ? ORDER BY `Timestamp` DESC", [matconId], (err, results) => {
             if (err) {
                 if (err instanceof ItemNotFoundError) {
                     return callback(err);
@@ -428,16 +356,12 @@ class Db {
                     metadata: [matconId]
                 }));
             }
-            callback(null, results.recordset);
+            callback(null, results);
         })
     }
 
     getReviewsForUser(userId, callback) {
-        this.get("SELECT * FROM [MatconRating] WHERE [UserId] = @UserId ORDER BY [Timestamp] DESC", [{
-            name: "UserId",
-            type: sql.Int,
-            value: userId
-        }], (err, results) => {
+        this.get("SELECT * FROM `matconrating` WHERE `UserId` = ? ORDER BY `Timestamp` DESC", [userId], (err, results) => {
             if (err) {
                 if (err instanceof ItemNotFoundError) {
                     return callback(err);
@@ -448,33 +372,64 @@ class Db {
                     metadata: [userId]
                 }));
             }
-            callback(null, results.recordset);
+            callback(null, results);
         })
     }
 
     //tags ----------------------------------------------------------------------------------
 
-    addMatconTags(matconId, tags, callback) {
-        //TODO: add tags
+    addTag(tag, callback) {
+        this.insert("tag", {
+            tag: tag
+        }, (err, id) => {
+            if (err) {
+                return callback(new GenericError({
+                    log: "db.addTag: error inserting to db",
+                    err: err,
+                    metadata: [tag]
+                }));
+            }
+            callback(null, id);
+        })
     }
 
-    //TODO: getTags(search, callback)
+    addMatconTag(matconId, tagId, callback) {
+        this.insert("matcontag", {
+            MatconId: matconId,
+            TagId: tagId
+        }, (err, id) => {
+            if (err) {
+                return callback(new GenericError({
+                    log: "db.addMatconTag: error inserting to db",
+                    err: err,
+                    metadata: [matconId, tagId]
+                }));
+            }
+            callback(null, id);
+        })
+    }
+
+    getTags(search, callback) {
+        this.query("SELECT * FROM `tag` WHERE `tag` LIKE ?", "%" + search + "%", (err, result) => {
+            if (err) {
+                return callback(new GenericError({
+                    log: "db.getTags: error while getting",
+                    err: err,
+                    metadata: [search]
+                }));
+            }
+            callback(null, result);
+        })
+    }
 
     //TODO: getPopularTags(callback)
 
 
     //basic generic crud --------------------------------------------------------------------
 
-    execute(storedProcedure, inParams, outParams, callback) {
+    execute(storedProcedure, inParams, callback) {
         var self = this;
-        var request = new sql.Request();
-        inParams.forEach((param) => {
-            request.input(param.name, param.type, param.value);
-        });
-        outParams.forEach((param) => {
-            request.output(param.name, param.type);
-        });
-        request.execute(storedProcedure, (err, result) => {
+        this.query("CALL " + storedProcedure + " (?)", inParams, (err, result) => {
             if (err) {
                 return callback(new GenericError({
                     log: "db execute error",
@@ -488,49 +443,22 @@ class Db {
 
     query(query, params, callback) {
         var self = this;
-        const ps = new sql.PreparedStatement()
-        var paramsObj = {}
-        params.forEach((param) => {
-            ps.input(param.name, param.type);
-            paramsObj[param.name] = param.value;
-        });
 
-        ps.prepare(query, err => {
+        this.connection.query(query, params, (err, results, fields) => {
             if (err) {
                 return callback(new GenericError({
                     err: err,
-                    log: "error in db get prepare",
+                    log: "error in db query",
                     metadata: [query, params]
                 }))
             }
-
-            ps.execute(paramsObj, (err, result) => {
-                if (err) {
-                    return callback(new GenericError({
-                            err: err,
-                            log: "error in db query execute",
-                            metadata: [query, params]
-                        }))
-                        //TODO: do I need this?
-                        // ps.unprepare((err) => {
-                        //     self.logger.error(err, "unexpected error in db query unprepare after error occured in execute")
-                        // })
-                        // return;
-                }
-
-                ps.unprepare(err => {
-                    if (err) {
-                        self.logger.error(err, "unexpected error in db query unprepare after succesfull execute")
-                    }
-                    callback(null, result);
-                })
-            })
+            callback(null, results)
         })
     }
 
 
     insert(table, params, callback) {
-        var q = "insert into [" + table + "] values(" + params.map(i => "@" + i.name).join(",") + "); SELECT SCOPE_IDENTITY() as Id";
+        var q = "insert into `" + table + "` SET ?";
         this.query(q, params, (err, result) => {
             if (err) {
                 return callback(new GenericError({
@@ -539,24 +467,19 @@ class Db {
                     metadata: [table, params, q]
                 }));
             }
-            if (nou.isNull(result.recordset) || nou.isNull(result.recordset[0]) || nou.isNull(result.recordset[0].Id)) {
-                return callback(new GenericError({
-                    log: "db insert did not return Id properly",
-                    metadata: [table, params, q, result]
-                }));
-            }
-            callback(null, result.recordset[0].Id);
+            // if (nou.isNull(result.affectedRows) < 1) {
+            //     return callback(new GenericError({
+            //         log: "db insert did not return Id properly",
+            //         metadata: [table, params, q, result]
+            //     }));
+            // }
+            callback(null, result.insertId);
         })
     }
 
 
     update(table, id, params, callback) {
-        var q = "update [" + table + "] set " + params.map(i => "[" + i.name + "] = @" + i.name).join(",") + " where [Id] = @id";
-        params.push({
-            name: "id",
-            type: sql.Int,
-            value: id
-        })
+        var q = "update `" + table + "` set ? where `Id` = " + sql.escape(id);
         this.query(q, params, (err, result) => {
             if (err) {
                 return callback(new GenericError({
@@ -565,20 +488,19 @@ class Db {
                     metadata: [table, id, params, q]
                 }));
             }
-            if (result.rowsAffected < 1) {
-                return callback(new ItemNotFoundError("update rowsAffected = 0", [table, id, params, q]));
+            if (result.affectedRows < 1) {
+                return callback(new ItemNotFoundError("update affectedRows = 0", [table, id, params, q]));
             }
             callback();
         })
     }
-
 
     get(query, params, callback) {
         this.query(query, params, (err, result) => {
             if (err) {
                 callback(err);
             } else {
-                result.recordsets.forEach((dataset) => {
+                result.forEach((dataset) => {
                     dataset.forEach((item) => {
                         if (item.Data) {
                             try {
@@ -613,20 +535,12 @@ class Db {
     }
 
     getById(table, id, callback) {
-        this.getSingle("select * from [" + table + "] where Id = @id", [{
-            name: "id",
-            type: sql.Int,
-            value: id
-        }], callback);
+        this.getSingle("select * from `" + table + "`` where `Id` = ?", [id], callback);
     }
 
 
     delete(table, id, callback) {
-        this.query("delete from [" + table + "] where Id = @id", [{
-            name: "id",
-            type: sql.Int,
-            value: id
-        }], (err, result) => {
+        this.query("delete from `" + table + "` where `Id` = ?", [id], (err, result) => {
             if (err) {
                 callback(err);
             } else {
@@ -639,8 +553,8 @@ class Db {
     }
 
     deleteWhere(table, params, callback) {
-        var where = params.map(i => "[" + i.name + "] = @" + i.name).join(" AND ")
-        this.query("delete from [" + table + "] where " + where, params, (err, result) => {
+        var where = params.map(i => "`" + i.name + "` = " + sql.escape(i.value)).join(" AND ")
+        this.query("delete from `" + table + "` where " + where, (err, result) => {
             if (err) {
                 callback(err);
             } else {
