@@ -1,4 +1,24 @@
 {
+    "main": {
+        "pre-register-expiration-days": 3,
+        "expiration-job-hours": 12,
+        "port": 8080
+    },
+    "firebase": {
+
+    },
+    "db": {
+        "endpoint": "localhost",
+        "port": 3306,
+        "connectionLimit": 10,
+        "db": "x"
+    },
+    "mailer": {
+        "host": "smtp.mailgun.org",
+        "port": 587,
+        "from": "bread@bread.com",
+        "test": false
+    },
     "auth": {
         "minLength": 10,
         "maxLength": 30,
@@ -9,6 +29,12 @@
         "maxRepeat": 3
     },
     "logger": {
-        "name": "bread"
+        "name": "bread",
+        "level": "debug"
+    },
+    "password-policy": {
+
+    },
+    "rate-limiter": {
     }
 }

@@ -1,33 +1,29 @@
 //const sql = require('mssql');
 const sql = require('mysql');
 var nou = require("nou");
+const BasicModule = require('./basic-module.js');
 const SchemaValidationError = require('../errors/schema-validation-error.js');
 const GenericError = require('../errors/generic-error.js');
 const ItemNotFoundError = require('../errors/item-not-found-error.js');
 
-class Db {
+class Db extends BasicModule {
 
     constructor(config, services) {
-        if (nou.isNull(config.db)) {
-            throw new Error("configuration missing db section");
-        }
-        this.creds = config.db.creds;
+        super("db", config, services)
         this.ajv = services.ajv;
-        this.logger = services.logger.child({
-            module: "db"
-        });
+        this.init();
     }
 
     connect(callback) {
         var self = this;
 
         this.connection = sql.createPool({
-            connectionLimit: this.creds.connectionLimit,
-            host: this.creds.endpoint,
-            port: this.creds.port,
-            user: this.creds.user,
-            password: this.creds.password,
-            database: this.creds.db
+            connectionLimit: this.config.connectionLimit,
+            host: this.config.endpoint,
+            port: this.config.port,
+            user: this.config.user,
+            password: this.config.password,
+            database: this.config.db
         });
 
         callback();

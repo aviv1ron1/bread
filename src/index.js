@@ -7,7 +7,8 @@ const fs = require('fs');
 const bunyan = require('bunyan');
 const bformat = require('bunyan-format')  
 const Ajv = require('ajv');
-var emailValidator = require("email-validator");
+const emailValidator = require("email-validator");
+const defaults = require('defaults-deep');
 
 const ItemNotFoundError = require('./errors/item-not-found-error.js');
 
@@ -16,6 +17,7 @@ const PasswordPolicy = require('./modules/password-policy.js');
 const calculator = require('./modules/calculator.js');
 const Auth = require('./modules/auth.js');
 const Db = require('./modules/db.js');
+const RateLimiter = require('./modules/rate-limiter.js');
 
 const registerSchema = require('./schemas/register-schema.json');
 const matconSchema = require('./schemas/matcon-schema.json');
@@ -23,24 +25,21 @@ const reviewSchema = require('./schemas/review-schema.json');
 const userSchema = require('./schemas/user-schema.json');
 const dbMatconSchema = require('./schemas/db-matcon-schema.json');
 
-const config = require('./creds.json');
+var config = require('./config.json');
+const creds = require('./creds.json');
 
-var configuration = {
+config = defaults(config, creds);
+
+var mainDefaultConfiguration = {
     "pre-register-expiration-days": 3,
     "expiration-job-hours": 12,
     logger: {
-        name: "bread",
-        streams: [{
-            level: 'debug',
-            stream: process.stdout
-        }]
+        name: "bread"
     }
 }
 
 //override default config from file:
-for (let [key, value] of Object.entries(config.main)) {
-    configuration[key] = value;
-}
+config.main = defaults(config.main, mainDefaultConfiguration)
 
 var services = {
     emailValidator: emailValidator
@@ -58,12 +57,14 @@ config.logger.stream = loggerFormat;
 var logger = bunyan.createLogger(config.logger);
 services.logger = logger;
 services.db = new Db(config, services);
-services.passwordPolicy = new PasswordPolicy(config);
+services.passwordPolicy = new PasswordPolicy(config, services);
 services.mailer = new Mailer(config, services);
 services.auth = new Auth(config, services);
+var rateLimiter = new RateLimiter(config, services);
 
 var app = express()
 app.use(express.json());
+
 
 var api = express();
 api.use(helmet());
@@ -191,11 +192,11 @@ services.db.connect((err) => {
         console.error("Error connecting to db", err);
         process.exit(1);
     }
-    app.listen(configuration["port"], () => {
-        console.log('http server listening on', configuration["port"]);
+    app.listen(config.main["port"], () => {
+        console.log('http server listening on', config.main["port"]);
         //delete old non verified email registrations
         setInterval(() => {
-            services.db.deleteExpiredPreRegisters(configuration["pre-register-expiration-days"], (err, deleted) => {
+            services.db.deleteExpiredPreRegisters(config.main["pre-register-expiration-days"], (err, deleted) => {
                 if (err) {
                     if (err instanceof ItemNotFoundError) {
                         logger.info("pre-register expiration job ran. no results");
@@ -208,6 +209,6 @@ services.db.connect((err) => {
                     logger.info("re-register expiration job succesfull. delete " + deleted);
                 }
             })
-        }, configuration["expiration-job-hours"] * 1000 * 60 * 60);
+        }, config.main["expiration-job-hours"] * 1000 * 60 * 60);
     })
 })

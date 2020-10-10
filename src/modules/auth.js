@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const moment = require('moment');
 const nou = require('nou');
+const BasicModule = require('./basic-module.js');
 const GenericError = require('../errors/generic-error.js');
 const ItemNotFoundError = require('../errors/item-not-found-error.js');
 const PasswordPolicyError = require('../errors/password-policy-error.js');
@@ -10,39 +11,35 @@ const ItemExistsError = require('../errors/item-exists-error.js');
 
 const COOKIE_EXPIRATION = 90 /*days*/ * 24 /*hours*/ * 60 /*min*/ * 60 /*sec*/ * 1000;
 
-class Auth {
+class Auth extends BasicModule {
 
     constructor(config, services) {
+        super("auth", config, services)
         this.db = services.db;
         this.passwordPolicy = services.passwordPolicy;
         this.mailer = services.mailer;
         this.ajv = services.ajv;
         this.emailValidator = services.emailValidator;
-        this.saltLength = 20;
-        this.keyIterations = 100000;
-        this.keyLength = 128;
-        this.digest = "sha512";
-        this.preRegisterTokenLength = 20;
-        this.url = "http://localhost:8080/api/identity/verify";
-        if (nou.isNotNull(config) && nou.isNotNull(config.auth)) {
-            for (let [key, value] of Object.entries(config.auth)) {
-                this[key] = value;
-            }
-        }
-        this.logger = services.logger.child({
-            module: "auth"
-        });
+
+        this.init({
+            saltLength: 20,
+            keyIterations: 100000,
+            keyLength: 128,
+            digest: "sha512",
+            preRegisterTokenLength: 20,
+            url: "http://localhost:8080/api/identity/verify"
+        })
     }
 
     salt(password, callback) {
         var salt = [];
         var self = this;
-        crypto.randomBytes(this.saltLength, function(err, salt) {
+        crypto.randomBytes(this.config.saltLength, function(err, salt) {
             if (err) {
                 callback(err);
             } else {
                 salt = salt.toString('hex');
-                crypto.pbkdf2(password, salt, self.keyIterations, self.keyLength, self.digest, (err, derivedKey) => {
+                crypto.pbkdf2(password, salt, self.config.keyIterations, self.config.keyLength, self.config.digest, (err, derivedKey) => {
                     if (err) {
                         return callback(new GenericError({
                             log: "auth.salt: error creating pbkdf2",
@@ -52,9 +49,9 @@ class Auth {
                     callback(null, {
                         salt: salt,
                         key: derivedKey.toString('hex'),
-                        keyIterations: self.keyIterations,
-                        keyLength: self.keyLength,
-                        digest: self.digest,
+                        keyIterations: self.config.keyIterations,
+                        keyLength: self.config.keyLength,
+                        digest: self.config.digest,
                         created: moment().format()
                     });
                 });
@@ -119,7 +116,7 @@ class Auth {
                                 return callback(err);
                             }
                             self.logger.debug("addPreRegister ok", email, id);
-                            var url = self.url + "?id=" + id + "&token=" + token;
+                            var url = self.config.url + "?id=" + id + "&token=" + token;
                             self.mailer.send({
                                 to: email,
                                 subject: "Please verify your email address",
@@ -155,7 +152,7 @@ class Auth {
         var self = this;
         this.db.getPreRegister(data.id, (err, preRegister) => {
             if (err) {
-                 if(err instanceof ItemNotFoundError) {
+                if (err instanceof ItemNotFoundError) {
                     return callback(err);
                 }
                 self.logger.error({
@@ -170,7 +167,7 @@ class Auth {
                     description: "token does not match"
                 }))
             } else {
-                crypto.randomBytes(self.preRegisterTokenLength, function(err, salt) {
+                crypto.randomBytes(self.config.preRegisterTokenLength, function(err, salt) {
                     if (err) {
                         return callback(new GenericError({
                             log: "preRegister: error in crypto random bytes",
@@ -188,7 +185,10 @@ class Auth {
                                     metadata: [data]
                                 }))
                             }
-                            callback(null, { id: preRegister.Id, token: preRegister.Token });
+                            callback(null, {
+                                id: preRegister.Id,
+                                token: preRegister.Token
+                            });
                         })
                     }
                 })
@@ -204,7 +204,7 @@ class Auth {
         var self = this;
         this.db.getPreRegister(data.id, (err, preRegister) => {
             if (err) {
-                if(err instanceof ItemNotFoundError) {
+                if (err instanceof ItemNotFoundError) {
                     return callback(err);
                 }
                 return callback(new GenericError({
@@ -234,7 +234,7 @@ class Auth {
                                 delete data.token;
                                 self.db.addUser(data, (err, id) => {
                                     self.db.removePreRegister(preRegister, (err) => {
-                                        if(err) {
+                                        if (err) {
                                             self.logger.error(err, "register: error removing pre register after registration completed");
                                         }
                                     })
