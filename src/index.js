@@ -5,7 +5,7 @@ const path = require('path');
 const nou = require('nou');
 const fs = require('fs');
 const bunyan = require('bunyan');
-const bformat = require('bunyan-format')  
+const bformat = require('bunyan-format')
 const Ajv = require('ajv');
 const emailValidator = require("email-validator");
 const defaults = require('defaults-deep');
@@ -17,7 +17,8 @@ const PasswordPolicy = require('./modules/password-policy.js');
 const calculator = require('./modules/calculator.js');
 const Auth = require('./modules/auth.js');
 const Db = require('./modules/db.js');
-const RateLimiter = require('./modules/rate-limiter.js');
+const IpRateLimiter = require('./modules/ip-rate-limiter.js');
+const BruteForceRateLimiter = require('./modules/brute-force-rate-limiter.js');
 
 const registerSchema = require('./schemas/register-schema.json');
 const matconSchema = require('./schemas/matcon-schema.json');
@@ -52,7 +53,9 @@ services.ajv.addSchema(reviewSchema, "review");
 services.ajv.addSchema(userSchema, "user");
 services.ajv.addSchema(dbMatconSchema, "db-matcon");
 
-var loggerFormat = bformat({ outputMode: 'short' });
+var loggerFormat = bformat({
+    outputMode: 'short'
+});
 config.logger.stream = loggerFormat;
 var logger = bunyan.createLogger(config.logger);
 services.logger = logger;
@@ -60,11 +63,12 @@ services.db = new Db(config, services);
 services.passwordPolicy = new PasswordPolicy(config, services);
 services.mailer = new Mailer(config, services);
 services.auth = new Auth(config, services);
-var rateLimiter = new RateLimiter(config, services);
+var ipRateLimiter = new IpRateLimiter(config, services).getMiddleware();
+var bruteForceRateLimiter = new BruteForceRateLimiter(config, services).getMiddleware();
 
 var app = express()
 app.use(express.json());
-
+app.use(ipRateLimiter);
 
 var api = express();
 api.use(helmet());
@@ -142,7 +146,7 @@ login.get("/login", (req, res) => {
     //todo: check is authenticated
 });
 
-login.post("/login", (req, res) => {
+login.post("/login", bruteForceRateLimiter, (req, res) => {
     //todo: log in
 });
 
@@ -150,7 +154,7 @@ login.post("/logout", (req, res) => {
     //todo: log out
 });
 
-login.post("/preregister", (req, res) => {
+login.post("/preregister", bruteForceRateLimiter, (req, res) => {
     services.auth.preRegister(req.body.email, (err) => {
         if (err) {
             services.logger.error(err, "error in /register");
@@ -162,7 +166,7 @@ login.post("/preregister", (req, res) => {
     })
 });
 
-login.post("/register", (req, res) => {
+login.post("/register", bruteForceRateLimiter, (req, res) => {
     services.auth.register(req.body, (err) => {
         if (err) {
             services.logger.error(err, "error in /register");
@@ -175,7 +179,7 @@ login.post("/register", (req, res) => {
 });
 
 
-login.get("/verify", (req, res) => {
+login.get("/verify", bruteForceRateLimiter, (req, res) => {
     services.auth.validatePreRegister(req.query, (err, validationRes) => {
         if (err) {
             services.logger.error("error in /verify", err);

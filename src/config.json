@@ -35,6 +35,12 @@
     "password-policy": {
 
     },
-    "rate-limiter": {
+    "ip-rate-limiter": {
+        "limiter-type": "RateLimiterMemory",
+        "limiter-config": {
+            "points": 200,
+            "duration": 60,
+            "keyPrefix": "middleware"
+        }
     }
 }
