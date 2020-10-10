@@ -7,5 +7,8 @@
         "mustIncludeUpperCase": true,
         "mustIncludeSpecial": true,
         "maxRepeat": 3
+    },
+    "logger": {
+        "name": "bread"
     }
 }

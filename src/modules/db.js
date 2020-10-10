@@ -24,6 +24,7 @@ class Db {
         this.connection = sql.createPool({
             connectionLimit: this.creds.connectionLimit,
             host: this.creds.endpoint,
+            port: this.creds.port,
             user: this.creds.user,
             password: this.creds.password,
             database: this.creds.db
@@ -81,16 +82,16 @@ class Db {
         })
     }
 
-    addUser(email, data, callback) {
+    addUser(data, callback) {
         this.insert('user', {
-            "Email": email,
+            "Email": data.email,
             "Data": JSON.stringify(data)
         }, (err, id) => {
             if (err) {
                 return callback(new GenericError({
                     log: "db.addUser: error inserting to db",
                     err: err,
-                    metadata: [email, data]
+                    metadata: [data]
                 }));
             }
             callback(null, id);
@@ -118,11 +119,11 @@ class Db {
     }
 
     updatePreRegister(data, callback) {
-        this.update("preregister", data.id, {
-            "Email": data.email,
-            "Token": data.token,
-            "Timestamp": data.timestamp,
-            "EmailValidated": data.emailValidated
+        this.update("preregister", data.Id, {
+            "Email": data.Email,
+            "Token": data.Token,
+            "Timestamp": data.Timestamp,
+            "EmailValidated": data.EmailValidated
         }, (err) => {
             if (err) {
                 return callback(new GenericError({
@@ -422,9 +423,6 @@ class Db {
         })
     }
 
-    //TODO: getPopularTags(callback)
-
-
     //basic generic crud --------------------------------------------------------------------
 
     execute(storedProcedure, inParams, callback) {
@@ -434,7 +432,7 @@ class Db {
                 return callback(new GenericError({
                     log: "db execute error",
                     err: err,
-                    metadata: [storedProcedure, inParams, outParams]
+                    metadata: [storedProcedure, inParams]
                 }))
             }
             callback(null, result);
@@ -443,7 +441,7 @@ class Db {
 
     query(query, params, callback) {
         var self = this;
-
+        self.logger.debug("query", query, params);
         this.connection.query(query, params, (err, results, fields) => {
             if (err) {
                 return callback(new GenericError({
@@ -452,6 +450,7 @@ class Db {
                     metadata: [query, params]
                 }))
             }
+            self.logger.debug("query OK", query, results);
             callback(null, results)
         })
     }
@@ -500,8 +499,8 @@ class Db {
             if (err) {
                 callback(err);
             } else {
-                result.forEach((dataset) => {
-                    dataset.forEach((item) => {
+                result.forEach((item) => {
+                        //dataset.forEach((item) => {
                         if (item.Data) {
                             try {
                                 item.Data = JSON.parse(item.Data);
@@ -514,7 +513,7 @@ class Db {
                             }
                         }
                     })
-                });
+                    //});
                 callback(null, result);
             }
         });
@@ -525,8 +524,8 @@ class Db {
             if (err) {
                 callback(err);
             } else {
-                if (result.recordsets.length > 0 && result.recordsets[0].length > 0) {
-                    callback(null, result.recordsets[0][0]);
+                if (result.length > 0) {
+                    callback(null, result[0]);
                 } else {
                     callback(new ItemNotFoundError("db.getSingle item not found", [query, params]));
                 }
@@ -535,7 +534,7 @@ class Db {
     }
 
     getById(table, id, callback) {
-        this.getSingle("select * from `" + table + "`` where `Id` = ?", [id], callback);
+        this.getSingle("select * from `" + table + "` where `Id` = ?", [id], callback);
     }
 
 

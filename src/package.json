@@ -13,6 +13,7 @@
     "@cloudant/cloudant": "^4.2.4",
     "ajv": "^6.12.3",
     "bunyan": "^1.8.14",
+    "bunyan-format": "^0.2.1",
     "email-validator": "^2.0.4",
     "express": "^4.17.1",
     "moment": "^2.24.0",

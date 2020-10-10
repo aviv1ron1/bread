@@ -37,6 +37,7 @@ class Mailer {
         if (this.test) {
             callback(null, "test");
         } else {
+            self.logger.debug("sending mail", mailOptions);
             this.mailer.sendMail(mailOptions, function(error, info) {
                 if (error) {
                     self.logger.error({
