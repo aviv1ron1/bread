@@ -1,28 +1,25 @@
-const GenericError = require('../errors/generic-error.js');
 var nodemailer = require('nodemailer');
 const nou = require('nou');
+var defaults = require('defaults-deep');
+const BasicModule = require('./basic-module.js');
+const GenericError = require('../errors/generic-error.js');
 
-class Mailer {
+class Mailer extends BasicModule {
 
     constructor(config, services) {
-        this.test = false;
-        if (nou.isNotNull(config) && nou.isNotNull(config.mailer)) {
-            for (let [key, value] of Object.entries(config.mailer)) {
-                this[key] = value;
-            }
-        }
+        super("mailer", config, services);
+        this.init({
+            test: true
+        })
         this.mailer = nodemailer.createTransport({
-            host: this.host,
-            port: this.port,
+            host: this.config.host,
+            port: this.config.port,
             auth: {
-                user: this.user,
-                pass: this.pass
+                user: this.config.user,
+                pass: this.config.pass
             }
         }, {
-            from: this.from
-        });
-        this.logger = services.logger.child({
-            module: "mailer"
+            from: this.config.from
         });
     }
 
@@ -34,7 +31,7 @@ class Mailer {
             text: mail.content
         }
 
-        if (this.test) {
+        if (this.config.test) {
             callback(null, "test");
         } else {
             self.logger.debug("sending mail", mailOptions);

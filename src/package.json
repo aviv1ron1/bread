@@ -14,13 +14,15 @@
     "ajv": "^6.12.3",
     "bunyan": "^1.8.14",
     "bunyan-format": "^0.2.1",
+    "defaults-deep": "^0.2.4",
     "email-validator": "^2.0.4",
     "express": "^4.17.1",
     "helmet": "^4.1.1",
     "moment": "^2.24.0",
     "mysql": "^2.18.1",
     "nodemailer": "^6.4.10",
-    "nou": "0.0.1"
+    "nou": "0.0.1",
+    "rate-limiter-flexible": "^2.1.10"
   },
   "devDependencies": {
     "jest": "^26.1.0"
