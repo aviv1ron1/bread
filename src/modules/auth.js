@@ -23,7 +23,7 @@ class Auth {
         this.keyLength = 128;
         this.digest = "sha512";
         this.preRegisterTokenLength = 20;
-        this.url = "http://localhost:8080";
+        this.url = "http://localhost:8080/api/identity/verify";
         if (nou.isNotNull(config) && nou.isNotNull(config.auth)) {
             for (let [key, value] of Object.entries(config.auth)) {
                 this[key] = value;
@@ -106,7 +106,7 @@ class Auth {
                         callback(err);
                     } else {
                         var token = salt.toString('hex');
-                        self.db.setPreRegister({
+                        self.db.addPreRegister({
                             email: email,
                             token: token,
                             timestamp: moment().format(),
@@ -118,7 +118,8 @@ class Auth {
                                 }, "preRegister: error saving pre register data in db");
                                 return callback(err);
                             }
-                            var url = self.url + "/verify?id=" + id.id + "&token=" + token;
+                            self.logger.debug("addPreRegister ok", email, id);
+                            var url = self.url + "?id=" + id + "&token=" + token;
                             self.mailer.send({
                                 to: email,
                                 subject: "Please verify your email address",
@@ -162,7 +163,8 @@ class Auth {
                 }, "validatePreRegister: failed to get item from db");
                 return callback(err);
             }
-            if (preRegister.token != data.token) {
+            self.logger.debug("validatePreRegister getPreRegister OK:", preRegister);
+            if (preRegister.Token != data.token) {
                 self.logger.error(preRegister, "validatePreRegister: token does not match");
                 return callback(new GenericError({
                     description: "token does not match"
@@ -176,8 +178,8 @@ class Auth {
                             metadata: [data, preRegister]
                         }))
                     } else {
-                        preRegister.emailValidated = true;
-                        preRegister.token = salt.toString('hex');
+                        preRegister.EmailValidated = true;
+                        preRegister.Token = salt.toString('hex');
                         self.db.updatePreRegister(preRegister, (err) => {
                             if (err) {
                                 return callback(new GenericError({
@@ -186,7 +188,7 @@ class Auth {
                                     metadata: [data]
                                 }))
                             }
-                            callback(null, { id: preRegister._id, token: preRegister.token });
+                            callback(null, { id: preRegister.Id, token: preRegister.Token });
                         })
                     }
                 })
@@ -210,7 +212,7 @@ class Auth {
                     metadata: [data.email, data.id]
                 }))
             }
-            if (preRegister.token != data.token) {
+            if (preRegister.Token != data.token) {
                 return callback(new GenericError({
                     description: "token does not match"
                 }))

@@ -1,3 +1,6 @@
+-- ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'XXXpasswordXXX'
+-- flush privileges;
+
 /****** Object:  Table `Matcon`    Script Date: 04/08/2020 17:26:42 ******/
 use `bread`;
 

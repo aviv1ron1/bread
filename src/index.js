@@ -4,16 +4,17 @@ const path = require('path');
 const nou = require('nou');
 const fs = require('fs');
 const bunyan = require('bunyan');
+const bformat = require('bunyan-format')  
 const Ajv = require('ajv');
 var emailValidator = require("email-validator");
 
 const ItemNotFoundError = require('./errors/item-not-found-error.js');
 
 const Mailer = require('./modules/mailer.js');
-const PasswordPolicy = require('./nodules/password-policy.js');
+const PasswordPolicy = require('./modules/password-policy.js');
 const calculator = require('./modules/calculator.js');
 const Auth = require('./modules/auth.js');
-const Db = require('./db.js');
+const Db = require('./modules/db.js');
 
 const registerSchema = require('./schemas/register-schema.json');
 const matconSchema = require('./schemas/matcon-schema.json');
@@ -22,7 +23,6 @@ const userSchema = require('./schemas/user-schema.json');
 const dbMatconSchema = require('./schemas/db-matcon-schema.json');
 
 const config = require('./creds.json');
-
 
 var configuration = {
     "pre-register-expiration-days": 3,
@@ -52,34 +52,23 @@ services.ajv.addSchema(reviewSchema, "review");
 services.ajv.addSchema(userSchema, "user");
 services.ajv.addSchema(dbMatconSchema, "db-matcon");
 
-
+var loggerFormat = bformat({ outputMode: 'short' });
+config.logger.stream = loggerFormat;
 var logger = bunyan.createLogger(config.logger);
 services.logger = logger;
 services.db = new Db(config, services);
 services.passwordPolicy = new PasswordPolicy(config);
-services.mailer = new Mailer(config);
+services.mailer = new Mailer(config, services);
 services.auth = new Auth(config, services);
 
-//delete old non verified email registrations
-setInterval(() => {
-    services.db.deleteExpiredPreRegisters(configuration["pre-register-expiration-days"], (err, deleted) => {
-        if (err) {
-            if (err instanceof ItemNotFoundError) {
-                logger.info("pre-register expiration job ran. no results");
-            } else {
-                logger.error({
-                    err: err
-                }, "there was an error in the re-register expiration job");
-            }
-        } else {
-            logger.info("re-register expiration job succesfull. delete " + deleted);
-        }
-    })
-});
-
 var app = express()
+app.use(express.json());
 
 var api = express();
+api.use((req, res, next) => {
+    services.logger.debug("*** express ***", req.method, req.originalUrl, "query:", req.query, "body:", req.body);
+    next();
+})
 
 var login = express();
 
@@ -158,16 +147,65 @@ login.post("/logout", (req, res) => {
     //todo: log out
 });
 
-login.post("/register", (req, res) => {
+login.post("/preregister", (req, res) => {
+    services.auth.preRegister(req.body.email, (err) => {
+        if (err) {
+            services.logger.error(err, "error in /register");
+            res.status(500).end(err.description);
+        } else {
+            res.end("OK")
+        }
 
+    })
 });
 
-db.connect((err) => {
+login.post("/register", (req, res) => {
+    services.auth.register(req.body, (err) => {
+        if (err) {
+            services.logger.error(err, "error in /register");
+            res.status(500).end(err.description);
+        } else {
+            res.end("OK")
+        }
+
+    })
+});
+
+
+login.get("/verify", (req, res) => {
+    services.auth.validatePreRegister(req.query, (err, validationRes) => {
+        if (err) {
+            services.logger.error("error in /verify", err);
+            res.status(500).end(err.description);
+        } else {
+            services.logger.debug("/verify OK", req.query, validationRes);
+            res.json(validationRes);
+        }
+    })
+});
+
+services.db.connect((err) => {
     if (err) {
         console.error("Error connecting to db", err);
         process.exit(1);
     }
-    app.listen(8080, () => {
-        console.log('http server listening');
+    app.listen(configuration["port"], () => {
+        console.log('http server listening on', configuration["port"]);
+        //delete old non verified email registrations
+        setInterval(() => {
+            services.db.deleteExpiredPreRegisters(configuration["pre-register-expiration-days"], (err, deleted) => {
+                if (err) {
+                    if (err instanceof ItemNotFoundError) {
+                        logger.info("pre-register expiration job ran. no results");
+                    } else {
+                        logger.error({
+                            err: err
+                        }, "there was an error in the re-register expiration job");
+                    }
+                } else {
+                    logger.info("re-register expiration job succesfull. delete " + deleted);
+                }
+            })
+        }, configuration["expiration-job-hours"] * 1000 * 60 * 60);
     })
 })
