@@ -1,5 +1,6 @@
 const moment = require('moment');
 const express = require('express');
+const helmet = require('helmet');
 const path = require('path');
 const nou = require('nou');
 const fs = require('fs');
@@ -65,6 +66,7 @@ var app = express()
 app.use(express.json());
 
 var api = express();
+api.use(helmet());
 api.use((req, res, next) => {
     services.logger.debug("*** express ***", req.method, req.originalUrl, "query:", req.query, "body:", req.body);
     next();
