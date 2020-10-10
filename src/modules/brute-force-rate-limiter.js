@@ -33,4 +33,4 @@ class BruteForceRateLimiter extends BasicModule {
     }
 }
 
-module.exports = IpRateLimiter;
+module.exports = BruteForceRateLimiter;
