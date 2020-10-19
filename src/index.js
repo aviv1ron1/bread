@@ -1,6 +1,7 @@
 const moment = require('moment');
 const express = require('express');
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 const nou = require('nou');
 const fs = require('fs');
@@ -68,20 +69,24 @@ var bruteForceRateLimiter = new BruteForceRateLimiter(config, services).getMiddl
 
 var app = express()
 app.use(express.json());
-app.use(ipRateLimiter);
+//app.use(ipRateLimiter);
+app.use(cookieParser());
+app.use(services.auth.xsrfValidate());
+app.use(services.auth.xsrf());
+app.use(helmet());
 
-var api = express();
-api.use(helmet());
+var api = express.Router();
 api.use((req, res, next) => {
     services.logger.debug("*** express ***", req.method, req.originalUrl, "query:", req.query, "body:", req.body);
     next();
 })
 
-var login = express();
+var login = express.Router();
 
 app.use("/api", api);
 api.use("/identity", login);
 app.use(express.static(path.join(__dirname, 'public')));
+
 
 function timeToStr(t) {
     if (t / 60 >= 1) {
@@ -97,14 +102,14 @@ function timeToStr(t) {
 
 api.get("/bread", (req, res) => {
     var arr = [];
-    for (let [name, b] of Object.entries(matconim)) {
-        arr.push({
-            "name": name,
-            "weight": b.weight,
-            "temperature": b.temperature,
-            "img": b.img
-        })
-    }
+    // for (let [name, b] of Object.entries(matconim)) {
+    //     arr.push({
+    //         "name": name,
+    //         "weight": b.weight,
+    //         "temperature": b.temperature,
+    //         "img": b.img
+    //     })
+    // }
     res.json(arr);
 });
 
@@ -142,16 +147,38 @@ api.get("/bread/:breadType/weight", (req, res) => {
     }
 });
 
-login.get("/login", (req, res) => {
-    //todo: check is authenticated
+login.get("/login", services.auth.isAuthenticated(), (req, res) => {
+    res.status(200).json(req.user);
 });
 
 login.post("/login", bruteForceRateLimiter, (req, res) => {
-    //todo: log in
+    services.auth.login(req.body.user, req.body.pass, res, (err, verified) => {
+        if (err) {
+            res.status(500).end(err.description);
+        } else {
+            if (verified) {
+                services.auth.setAuthCookie(req.body.user, res, (err) => {
+                    if (err) {
+                        res.status(500).end(err.description);
+                    } else {
+                        res.status(200).end();
+                    }
+                })
+            } else {
+                res.status(401).end("wrong credentials");
+            }
+        }
+    })
 });
 
-login.post("/logout", (req, res) => {
-    //todo: log out
+login.post("/logout", services.auth.isAuthenticated(), (req, res) => {
+    services.auth.logout(req.user.email, res, (err) => {
+        if (err) {
+            res.status(500).end(err.description);
+        } else {
+            res.status(200).end();
+        }
+    })
 });
 
 login.post("/preregister", bruteForceRateLimiter, (req, res) => {
