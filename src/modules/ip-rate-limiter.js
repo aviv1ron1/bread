@@ -26,7 +26,7 @@ class IpRateLimiter extends BasicModule {
                 })
                 .catch(() => {
                     this.services.logger.warn("ip rate limiter too many requests", req.ip)
-                    res.status(429).send('Too Many Requests');
+                    res.status(429).end('Too Many Requests');
                 });
         }
 

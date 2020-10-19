@@ -361,6 +361,37 @@ var fuccacia = {
     }]
 }
 
+var bagguete = {
+    "hydration": 0.68,
+    "ingredients": [{
+        "name": "baladi flour",
+        "amount": 0.6,
+        "type": "flour"
+    }, {
+        "name": "whole manitoba flour",
+        "amount": 0.2,
+        "type": "flour"
+    }, {
+        "name": "white manitoba flour",
+        "amount": 0.2,
+        "type": "flour"
+    }, {
+        "name": "salt",
+        "amount": 0.02
+    }, {
+        "name": "yeast",
+        "amount": 0.003
+    }, {
+        "name": "water",
+        "type": "hydration",
+        "calculate": true
+    }, {
+        "name": "sourdough",
+        "hydration": 0.65,
+        "amount": 0.05
+    }]
+}
+
 var PanDoCampanie = {
     "hydration": 0.7,
     "ingredients": [{
@@ -500,7 +531,7 @@ test('test sourdough pre ferment gets calculated right from final weight', () =>
 });
 
 test('make the fucking recipe', () => {
-    var amounts = calculator.calculateAmountFromFinalWeight(100*16, hamburger);
+    var amounts = calculator.calculateAmountFromFinalWeight(200*10, bagguete);
     fs.writeFileSync("output.json", JSON.stringify(amounts))
     expect(amounts.ingredients).toBeDefined();
 });

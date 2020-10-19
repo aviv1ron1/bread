@@ -7,19 +7,12 @@ const ItemNotFoundError = require('../errors/item-not-found-error.js');
 const PasswordPolicyError = require('../errors/password-policy-error.js');
 const SchemaValidationError = require('../errors/schema-validation-error.js');
 const ItemExistsError = require('../errors/item-exists-error.js');
-
-
-const COOKIE_EXPIRATION = 90 /*days*/ * 24 /*hours*/ * 60 /*min*/ * 60 /*sec*/ * 1000;
+const LRU = require("lru-cache");
 
 class Auth extends BasicModule {
 
     constructor(config, services) {
         super("auth", config, services)
-        this.db = services.db;
-        this.passwordPolicy = services.passwordPolicy;
-        this.mailer = services.mailer;
-        this.ajv = services.ajv;
-        this.emailValidator = services.emailValidator;
 
         this.init({
             saltLength: 20,
@@ -27,11 +20,20 @@ class Auth extends BasicModule {
             keyLength: 128,
             digest: "sha512",
             preRegisterTokenLength: 20,
-            url: "http://localhost:8080/api/identity/verify"
+            url: "http://localhost:8080/api/identity/verify",
+            expiration: 7776000000,
+            secure: false
+        })
+
+        this.cache = new LRU({
+            max: 500,
+            length: function(n, key) {
+                return n.length + key.length
+            }
         })
     }
 
-    salt(password, callback) {
+    saltAndPbkdf(password, callback) {
         var salt = [];
         var self = this;
         crypto.randomBytes(this.config.saltLength, function(err, salt) {
@@ -59,6 +61,10 @@ class Auth extends BasicModule {
         });
     }
 
+    hmac(password) {
+        return crypto.createHmac('sha256', this.config["hmac-secret"]).digest(password).toString('hex');
+    }
+
     verify(password, derivedKey, callback) {
         crypto.pbkdf2(password, derivedKey.salt, derivedKey.keyIterations, derivedKey.keyLength, derivedKey.digest, (err, verification) => {
             if (err) {
@@ -72,27 +78,54 @@ class Auth extends BasicModule {
         });
     }
 
-    login(email, password, callback) {
+    login(email, password, res, callback) {
         var self = this;
-        this.db.getUserByEmail(email, (err, user) => {
+        this.services.db.getUserByEmail(email, (err, user) => {
             if (err) {
-                return callback(err);
+                if (err instanceof ItemNotFoundError) {
+                    return callback(null, false);
+                } else {
+                    return callback(err);
+                }
             }
-            self.verify(password, user.password, (err, verified) => {
-                callback(err, verified);
+            self.verify(password, user.Data.password, (err, verified) => {
+                if (err) {
+                    callback(err);
+                } else {
+                    if (verified) {
+                        self.setAuthCookie(email, res, (err, auth) => {
+                            if (err) {
+                                self.logger.error(err);
+                                return res.status(401).end();
+                            }
+                            self.services.db.addUserAuth(user.Id, auth.token, auth, (err) => {
+                                callback(err, true);
+                            });
+                        })
+                    } else {
+                        callback(null, false);
+                    }
+                }
             })
+        })
+    }
+
+    logout(email, res, callback) {
+        this.services.db.removeUserAuth(email, (err) => {
+            res.clearCookie('auth');
+            callback(err);
         })
     }
 
     preRegister(email, callback) {
         var self = this;
-        if (!this.emailValidator.validate(email)) {
+        if (!this.services.emailValidator.validate(email)) {
             return callback(new SchemaValidationError("email invalid", [email], [{
                 message: "email should be a valid email address"
             }]))
         }
         //check if user exists already
-        self.db.getUserByEmail(email, (err) => {
+        self.services.db.getUserByEmail(email, (err) => {
             if (nou.isNotNull(err) && err instanceof ItemNotFoundError) {
                 //user does not exists, send verify mail
                 crypto.randomBytes(this.preRegisterTokenLength, function(err, salt) {
@@ -103,7 +136,7 @@ class Auth extends BasicModule {
                         callback(err);
                     } else {
                         var token = salt.toString('hex');
-                        self.db.addPreRegister({
+                        self.services.db.addPreRegister({
                             email: email,
                             token: token,
                             timestamp: moment().format(),
@@ -117,7 +150,7 @@ class Auth extends BasicModule {
                             }
                             self.logger.debug("addPreRegister ok", email, id);
                             var url = self.config.url + "?id=" + id + "&token=" + token;
-                            self.mailer.send({
+                            self.services.mailer.send({
                                 to: email,
                                 subject: "Please verify your email address",
                                 content: "If you enrolled to our bread application, please verify your email by clicking on this link: " + url
@@ -150,7 +183,7 @@ class Auth extends BasicModule {
 
     validatePreRegister(data, callback) {
         var self = this;
-        this.db.getPreRegister(data.id, (err, preRegister) => {
+        this.services.db.getPreRegister(data.id, (err, preRegister) => {
             if (err) {
                 if (err instanceof ItemNotFoundError) {
                     return callback(err);
@@ -177,7 +210,7 @@ class Auth extends BasicModule {
                     } else {
                         preRegister.EmailValidated = true;
                         preRegister.Token = salt.toString('hex');
-                        self.db.updatePreRegister(preRegister, (err) => {
+                        self.services.db.updatePreRegister(preRegister, (err) => {
                             if (err) {
                                 return callback(new GenericError({
                                     log: "validatePreRegister: error updating validate = true in db",
@@ -198,11 +231,11 @@ class Auth extends BasicModule {
     }
 
     register(data, callback) {
-        if (!this.ajv.validate("register", data)) {
-            return callback(new SchemaValidationError("auth.register: error validating register json schema", [data], this.ajv.errors));
+        if (!this.services.ajv.validate("register", data)) {
+            return callback(new SchemaValidationError("auth.register: error validating register json schema", [data], this.services.ajv.errors));
         }
         var self = this;
-        this.db.getPreRegister(data.id, (err, preRegister) => {
+        this.services.db.getPreRegister(data.id, (err, preRegister) => {
             if (err) {
                 if (err instanceof ItemNotFoundError) {
                     return callback(err);
@@ -217,14 +250,14 @@ class Auth extends BasicModule {
                     description: "token does not match"
                 }))
             } else {
-                this.passwordPolicy.validate(data.password, (illegal) => {
+                this.services.passwordPolicy.validate(data.password, (illegal) => {
                     if (illegal) {
                         return callback(new PasswordPolicyError(illegal));
                     }
-                    self.db.getUserByEmail(data.email, (err, user) => {
+                    self.services.db.getUserByEmail(data.email, (err, user) => {
                         if (err instanceof ItemNotFoundError) {
                             //user does not exist - add to db
-                            self.salt(data.password, (err, salted) => {
+                            self.saltAndPbkdf(data.password, (err, salted) => {
                                 if (err) {
                                     return callback(err);
                                 }
@@ -232,8 +265,8 @@ class Auth extends BasicModule {
                                 data.joined = moment().format();
                                 delete data.id;
                                 delete data.token;
-                                self.db.addUser(data, (err, id) => {
-                                    self.db.removePreRegister(preRegister, (err) => {
+                                self.services.db.addUser(data, (err, id) => {
+                                    self.services.db.removePreRegister(preRegister, (err) => {
                                         if (err) {
                                             self.logger.error(err, "register: error removing pre register after registration completed");
                                         }
@@ -252,6 +285,7 @@ class Auth extends BasicModule {
     }
 
     setAuthCookie(email, resp, callback) {
+        var self = this;
         crypto.randomBytes(24, function(err, randToken) {
             if (err) {
                 callback(err);
@@ -263,42 +297,121 @@ class Auth extends BasicModule {
                     expiration: moment().add(90, 'd').unix()
                 }
                 resp.cookie('auth', tokenStr, {
-                    secure: SECURE_COOKIE,
+                    secure: self.config.secure,
                     httpOnly: true,
-                    maxAge: COOKIE_EXPIRATION
+                    maxAge: self.config.expiration,
+                    sameSite: "strict"
                 });
-
-                this.db.setUserAuth(auth, (err) => {
-                    callback(err, auth);
-                });
+                self.cache.set(tokenStr, email, self.config.expiration);
+                callback(null, auth);
             }
         });
     }
 
-    removeAuthCookie(email, callback) {
-        this.db.removeUserAuth(email, (err) => {
-            callback(err);
-        })
+    randToken(callback) {
+        crypto.randomBytes(this.config["xsrf-cookie-len"], function(err, randToken) {
+            if (err) {
+                callback(err);
+            } else {
+                callback(null, randToken.toString('hex'));
+            }
+        });
     }
 
-    isAuthenticated(req, res, next) {
-        //console.log("isAuthenticated called");
-        if (req.cookies && req.cookies.auth) {
-            // console.log("auth cookie found");
-            var token = req.cookies.auth;
-            this.db.getUserAuth(token, (err, data) => {
-                if (err) {
-                    console.error("error in isAuthenticated", err);
-                    return res.status(401).end();
-                } else {
-                    if (nou.isNotNull(data) && nou.isNotNull(data[0])) {
-                        req.user = data[0].email;
-                        next();
-                    } else {
-                        res.status(401).end();
+    validateXsrfCookie(cookie, _csrf, ip) {
+        var token = cookie.substring(0, this.config["xsrf-cookie-len"] * 2);
+        var h = this.hmac(token + ip);
+        return cookie.substring(this.config["xsrf-cookie-len"] * 2) == h && cookie == _csrf;
+    }
+
+    xsrf() {
+        var self = this;
+        return (req, res, next) => {
+            self.logger.debug("xsrf");
+            if (req.xsrf) {
+                self.logger.debug("req.xsrf true");
+                return next();
+            }
+            if (nou.isNull(req.cookies[self.config["xsrf-cookie-name"]]) && req.method == "GET") {
+                self.logger.debug("req.xsrf creating xsrf token and cookie");
+                self.randToken((err, token) => {
+                    if (err) {
+                        var gerr = new GenericError({
+                            log: "xsrf: error creating random token for un autheticated session",
+                            err: err
+                        });
+                        self.logger.error({
+                            err: gerr
+                        });
+                        return res.status(500).end(gerr.description);
                     }
+                    req.xsrf = true;
+                    res.cookie(self.config["xsrf-cookie-name"], token + self.hmac(token + req.ip), {
+                        secure: self.config.secure,
+                        expires: 0,
+                        httpOnly: false,
+                        sameSite: "strict"
+                    });
+                    self.logger.debug("req.xsrf creating xsrf token and cookie - next");
+                    return next();
+                })
+            }
+            next();
+        }
+    }
+
+    xsrfValidate() {
+        var self = this;
+        return (req, res, next) => {
+            self.logger.debug("checking xsrf cookie");
+            if (req.method == "GET" || req.method == "HEAD" || req.method == "OPTIONS") {
+                self.logger.debug("checking xsrf cookie - skipping (get, head, options)");
+                return next();
+            }
+
+            if (req.cookies[self.config["xsrf-cookie-name"]] && self.validateXsrfCookie(req.cookies[self.config["xsrf-cookie-name"]], req.body._csrf, req.ip)) {
+                self.logger.debug("checking xsrf cookie - OK");
+                next();
+            } else {
+                self.logger.warn("illegal xsrf token", req.cookies, req.ip);
+                res.status(401).end();
+            }
+        }
+    }
+
+    isAuthenticated() {
+        var self = this;
+        return (req, res, next) => {
+            // this.services.logger("isAuthenticated called")
+            if (req.cookies && req.cookies.auth) {
+                console.log("auth cookie found");
+                var token = req.cookies.auth;
+                var user = self.cache.get(token);
+                if (user) {
+                    //user is in cache
+                    req.user = user;
+                    req.auth = token;
+                    next();
+                } else {
+                    this.services.db.getUserAuth(token, (err, data) => {
+                        if (err) {
+                            console.error("error in isAuthenticated", err);
+                            return res.status(401).end();
+                        } else {
+                            if (nou.isNotNull(data)) {
+                                req.user = data;
+                                req.auth = token;
+                                cache.set(token, data);
+                                next();
+                            } else {
+                                res.status(401).end();
+                            }
+                        }
+                    })
                 }
-            })
+            } else {
+                res.status(401).end();
+            }
         }
     }
 

@@ -496,20 +496,18 @@ class Db extends BasicModule {
                 callback(err);
             } else {
                 result.forEach((item) => {
-                        //dataset.forEach((item) => {
-                        if (item.Data) {
-                            try {
-                                item.Data = JSON.parse(item.Data);
-                            } catch (ex) {
-                                self.logger.error(new GenericError({
-                                    err: ex,
-                                    log: "db.get failure to parse json from result",
-                                    metadata: [query, params, item]
-                                }));
-                            }
+                    if (item.Data) {
+                        try {
+                            item.Data = JSON.parse(item.Data);
+                        } catch (ex) {
+                            self.logger.error(new GenericError({
+                                err: ex,
+                                log: "db.get failure to parse json from result",
+                                metadata: [query, params, item]
+                            }));
                         }
-                    })
-                    //});
+                    }
+                })
                 callback(null, result);
             }
         });
