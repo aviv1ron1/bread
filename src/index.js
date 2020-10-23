@@ -12,6 +12,7 @@ const emailValidator = require("email-validator");
 const defaults = require('defaults-deep');
 
 const ItemNotFoundError = require('./errors/item-not-found-error.js');
+const SchemaValidationError = require('./errors/schema-validation-error.js');
 
 const Mailer = require('./modules/mailer.js');
 const PasswordPolicy = require('./modules/password-policy.js');
@@ -72,8 +73,6 @@ app.use(express.json());
 //app.use(ipRateLimiter);
 app.use(cookieParser());
 app.use(services.auth.xsrfValidate());
-app.use(services.auth.xsrf());
-app.use(helmet());
 
 var api = express.Router();
 api.use((req, res, next) => {
@@ -86,7 +85,33 @@ var login = express.Router();
 app.use("/api", api);
 api.use("/identity", login);
 app.use(express.static(path.join(__dirname, 'public')));
-
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            "default-src": ["'self'"],
+            "script-src": ["'self'", "unpkg.com"],
+            "object-src": ["'none'"],
+            "style-src": ["'self'", "'unsafe-inline'"],
+            upgradeInsecureRequests: [],
+        }
+    }
+}));
+app.use(services.auth.xsrf());
+app.use(function(err, req, res, next) {
+    services.logger.error("*** express ERROR ***", req.method, req.originalUrl, "query:", req.query, "body:", req.body, "error:", err);
+    if (res.headersSent) {
+        return next(err)
+    }
+    var status = 500;
+    if (err.status) {
+        status = err.status;
+    }
+    var description = "sorry, something went wrong :(";
+    if (err.description) {
+        description = err.description
+    }
+    res.status(status).json(description);
+})
 
 function timeToStr(t) {
     if (t / 60 >= 1) {
@@ -151,69 +176,54 @@ login.get("/login", services.auth.isAuthenticated(), (req, res) => {
     res.status(200).json(req.user);
 });
 
-login.post("/login", bruteForceRateLimiter, (req, res) => {
-    services.auth.login(req.body.user, req.body.pass, res, (err, verified) => {
+login.post("/login", bruteForceRateLimiter, (req, res, next) => {
+    if (nou.isNull(req.body.email) || nou.isNull(req.body.password)) {
+        return res.status(400).json("missing required email and password");
+    }
+    services.auth.login(req.body.email, req.body.password, res, (err, verified, user) => {
         if (err) {
-            res.status(500).end(err.description);
+            next(err);
         } else {
             if (verified) {
-                services.auth.setAuthCookie(req.body.user, res, (err) => {
-                    if (err) {
-                        res.status(500).end(err.description);
-                    } else {
-                        res.status(200).end();
-                    }
-                })
+                res.status(200).json(user);
             } else {
-                res.status(401).end("wrong credentials");
+                res.status(401).json("wrong credentials");
             }
         }
     })
 });
 
-login.post("/logout", services.auth.isAuthenticated(), (req, res) => {
+login.post("/logout", services.auth.isAuthenticated(), (req, res, next) => {
     services.auth.logout(req.user.email, res, (err) => {
         if (err) {
-            res.status(500).end(err.description);
+            next(err);
         } else {
             res.status(200).end();
         }
     })
 });
 
-login.post("/preregister", bruteForceRateLimiter, (req, res) => {
-    services.auth.preRegister(req.body.email, (err) => {
+login.post("/register", bruteForceRateLimiter, (req, res, next) => {
+    if (!services.ajv.validate("register", req.body)) {
+        throw new SchemaValidationError("/register: error validating register json schema", [req.body], services.ajv.errors)
+    }
+    services.auth.register(req.body.email, req.body.name, req.body.password, (err) => {
         if (err) {
-            services.logger.error(err, "error in /register");
-            res.status(500).end(err.description);
+            next(err);
         } else {
             res.end("OK")
         }
-
     })
 });
 
-login.post("/register", bruteForceRateLimiter, (req, res) => {
-    services.auth.register(req.body, (err) => {
+login.get("/verify", bruteForceRateLimiter, (req, res, next) => {
+    services.auth.validateRegister(req.query, (err, validationRes) => {
         if (err) {
-            services.logger.error(err, "error in /register");
-            res.status(500).end(err.description);
-        } else {
-            res.end("OK")
-        }
-
-    })
-});
-
-
-login.get("/verify", bruteForceRateLimiter, (req, res) => {
-    services.auth.validatePreRegister(req.query, (err, validationRes) => {
-        if (err) {
-            services.logger.error("error in /verify", err);
-            res.status(500).end(err.description);
+            console.error("errrrrrr", err);
+            next(err);
         } else {
             services.logger.debug("/verify OK", req.query, validationRes);
-            res.json(validationRes);
+            res.redirect("#!/verified");
         }
     })
 });

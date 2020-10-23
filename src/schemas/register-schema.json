@@ -4,20 +4,16 @@
     "type": "object",
     "properties": {
         "email": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 320
         },
         "name": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 30
         },
         "password": {
             "type": "string"
-        },
-        "token": {
-            "type": "string"
-        },
-        "id": {
-            "type": "string"
         }
     },
-    "required": ["email", "name", "password", "token", "id"]
+    "required": ["email", "name", "password"]
 }

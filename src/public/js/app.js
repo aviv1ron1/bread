@@ -5,13 +5,12 @@ var initialUser = null;
 var initialPermission = true;
 
 $.ajax({
-        url: "/api/login",
+        url: "/api/identity/login",
         method: "GET"
     }).done((data) => {
         console.log("login success");
         isLoggedInInitialy = true;
-        initialUser = data.user;
-        initialPermission = data.permission;
+        initialUser = data;
     })
     .fail(() => {
         console.error("login failed");
@@ -22,13 +21,12 @@ $.ajax({
         });
     });
 
-var app = angular.module("app", ['ngRoute', 'ngResource']);
+var app = angular.module("app", ['ngRoute', 'ngResource', 'ngAnimate']);
 
 app.factory('auth', function($q) {
     var data = {
         isLoggedIn: isLoggedInInitialy,
-        user: initialUser,
-        permission: initialPermission
+        user: initialUser
     }
 
     var qArr = [];
@@ -49,21 +47,18 @@ app.factory('auth', function($q) {
         getData: function() {
             return data;
         },
-        setLogin: function(user, permission) {
+        setLogin: function(user) {
             data.isLoggedIn = true;
             data.user = user;
-            data.permission = permission;
             qArr.forEach(q => {
                 q(true);
             });
             qArr = [];
         },
         logout: function() {
-                data.isLoggedIn = false;
-                data.user = null;
-                data.permission = null;
-            } //,
-            //isReadOnly: data.permission == "read"
+            data.isLoggedIn = false;
+            data.user = null;
+        }
     }
 });
 
@@ -120,7 +115,18 @@ app.config(['$routeProvider',
                 }
             })
             .when('/login', {
-                templateUrl: 'pages/login.html'
+                templateUrl: 'pages/login.html',
+                controller: "loginController"
+            })
+            .when('/register', {
+                templateUrl: 'pages/register.html',
+                controller: "registerController"
+            })
+            .when('/postregister', {
+                templateUrl: 'pages/post-register.html'
+            })
+            .when('/verified', {
+                templateUrl: 'pages/verified.html'
             })
             // .when('/ages', {
             //     templateUrl: "pages/ages.html",
