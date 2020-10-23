@@ -4,8 +4,9 @@ class SchemaValidationError extends GenericError {
 
 	constructor(log, metadata, errors) {
 		var status = 400;
-		var description = "Item validation failed";
 		var errType = "SchemaValidationError";
+		errors.splice(0,0,{ message: "Validation failed:"});
+		var description = errors.map(i => i.message);
 		super({ log, status, description, metadata, errType });
 		this.errors = errors;
 	}

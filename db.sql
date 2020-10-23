@@ -59,9 +59,10 @@ CREATE TABLE `matcontag`(
 CREATE TABLE `preregister`(
 	`Id` int AUTO_INCREMENT NOT NULL,
 	`Email` varchar(320) NOT NULL,
+	`Name` varchar(30) NOT NULL,
+	`Password` Text NOT NULL,
 	`Token` varchar(100) NOT NULL,
 	`Timestamp` datetime NOT NULL,
-	`EmailValidated` tinyint NOT NULL,
  CONSTRAINT `PK_PreRegister` PRIMARY KEY 
 (
 	`Id` ASC

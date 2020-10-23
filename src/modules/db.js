@@ -99,9 +99,10 @@ class Db extends BasicModule {
     addPreRegister(data, callback) {
         this.insert('preregister', {
             "Email": data.email,
+            "Name": data.name,
+            "Password": data.password,
             "Token": data.token,
-            "Timestamp": data.timestamp,
-            "EmailValidated": data.emailValidated
+            "Timestamp": data.timestamp
         }, (err, id) => {
             if (err) {
                 return callback(new GenericError({
@@ -117,9 +118,10 @@ class Db extends BasicModule {
     updatePreRegister(data, callback) {
         this.update("preregister", data.Id, {
             "Email": data.Email,
+            "Name": data.Name,
+            "Password": data.Password,
             "Token": data.Token,
-            "Timestamp": data.Timestamp,
-            "EmailValidated": data.EmailValidated
+            "Timestamp": data.Timestamp
         }, (err) => {
             if (err) {
                 return callback(new GenericError({
@@ -149,7 +151,23 @@ class Db extends BasicModule {
     }
 
     getPreRegister(id, callback) {
-        this.getById("preregister", id, callback);
+        this.getById("preregister", id, (err, result) => {
+            if (err) {
+                callback(err)
+            } else {
+                try {
+                    result.Password = JSON.parse(result.Password);
+                    callback(null, result);
+                } catch (err) {
+                    callback(new GenericError({
+                        log: "getPreRegister error parsing result password to json",
+                        err: err,
+                        metadata: [id, result]
+                    }))
+                }
+                
+            }
+        });
     }
 
     deleteExpiredPreRegisters(expirationDays, callback) {
@@ -201,7 +219,7 @@ class Db extends BasicModule {
     }
 
     getUserAuth(token, callback) {
-        this.getSingle("SELECT `user`.* FROM `userauth` INNER JOIN `user` ON `userauth`.`UserId` = `user`.`Id` WHERE `Token` = ?", [token], callback);
+        this.getSingle("SELECT * FROM `userauth` WHERE `Token` = ?", [token], callback);
     }
 
     //////matconim ----------------------------------------------------------------
@@ -495,20 +513,24 @@ class Db extends BasicModule {
             if (err) {
                 callback(err);
             } else {
-                result.forEach((item) => {
-                    if (item.Data) {
-                        try {
-                            item.Data = JSON.parse(item.Data);
-                        } catch (ex) {
-                            self.logger.error(new GenericError({
-                                err: ex,
-                                log: "db.get failure to parse json from result",
-                                metadata: [query, params, item]
-                            }));
+                if (result.length > 0) {
+                    result.forEach((item) => {
+                        if (item.Data) {
+                            try {
+                                item.Data = JSON.parse(item.Data);
+                            } catch (ex) {
+                                self.logger.error(new GenericError({
+                                    err: ex,
+                                    log: "db.get failure to parse json from result",
+                                    metadata: [query, params, item]
+                                }));
+                            }
                         }
-                    }
-                })
-                callback(null, result);
+                    })
+                    callback(null, result);
+                } else {
+                    return callback(new ItemNotFoundError("not found", [query, params]));
+                }
             }
         });
     }

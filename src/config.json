@@ -20,22 +20,23 @@
         "test": false
     },
     "auth": {
-        "minLength": 10,
-        "maxLength": 30,
-        "mustIncludeNumbers": true,
-        "mustIncludeChars": true,
-        "mustIncludeUpperCase": true,
-        "mustIncludeSpecial": true,
-        "maxRepeat": 3,
-        "xsrf-cookie-name": "cookiemonster",
-        "xsrf-cookie-len": 10
+        "xsrf-cookie-name": "XSRF-TOKEN",
+        "xsrf-header-name": "X-XSRF-TOKEN",
+        "xsrf-cookie-len": 10,
+        "cacheExpiration": 86400000
     },
     "logger": {
         "name": "bread",
         "level": "debug"
     },
     "password-policy": {
-
+        "minLength": 3,
+        "maxLength": 30,
+        "mustIncludeNumbers": false,
+        "mustIncludeChars": true,
+        "mustIncludeUpperCase": false,
+        "mustIncludeSpecial": false,
+        "maxRepeat": 3
     },
     "ip-rate-limiter": {
         "limiter-type": "RateLimiterMemory",
