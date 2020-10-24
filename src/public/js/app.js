@@ -128,6 +128,10 @@ app.config(['$routeProvider',
             .when('/verified', {
                 templateUrl: 'pages/verified.html'
             })
+            .when('/create', {
+                templateUrl: 'pages/new-recipe.html',
+                controller: "newRecipeController"
+            })
             // .when('/ages', {
             //     templateUrl: "pages/ages.html",
             //     controller: "agesController",

@@ -296,6 +296,9 @@ class Auth extends BasicModule {
                 //self.logger.debug("req.xsrf true");
                 return next();
             }
+            if (res.headersSent) {
+                return next();
+            }
             if (nou.isNull(req.cookies[self.config["xsrf-cookie-name"]]) && req.method == "GET") {
                 self.logger.debug("req.xsrf creating xsrf token and cookie");
                 self.randToken((err, token) => {
@@ -307,6 +310,9 @@ class Auth extends BasicModule {
                         }));
                     }
                     req.xsrf = true;
+                    if (res.headersSent) {
+                        return next();
+                    }
                     res.cookie(self.config["xsrf-cookie-name"], token + self.hmac(token + req.ip), {
                         secure: self.config.secure,
                         expires: 0,

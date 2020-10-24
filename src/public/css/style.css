@@ -37,7 +37,24 @@
 .icon {
   width: 16px;
   height: 16px;
+  vertical-align: middle;
 }
+
+.bread-img {
+  width: 256px;
+  height: 256px;
+}
+
+.img-upload:hover {
+  background-color: #007bff!important;
+  cursor: pointer;
+}
+
+.img-upload:active {
+  background-color: #005bdf!important;
+  cursor: pointer;
+}
+
 
 @keyframes wiggle {
     0% { transform: translateX(2px); }
