@@ -37,7 +37,7 @@ CREATE TABLE `matconrating`(
 /****** Object:  Table `tag`    Script Date: 04/08/2020 17:26:42 ******/
 
 CREATE TABLE `tag` (
-  `id` INT NOT NULL,
+  `id` INT AUTO_INCREMENT NOT NULL,
   `tag` VARCHAR(100) NULL,
   PRIMARY KEY (`id`));
 
@@ -202,6 +202,16 @@ BEGIN
 	DELETE FROM `matconrating` WHERE `Id` = Id;
 
 	UPDATE `matcon` SET `Rating` = IFNULL((SELECT AVG(Cast(`matconrating`.`Rating` as Float)) FROM `matconrating` WHERE `MatconId` = MatconId), 0);
+
+END$$
+
+/****** Object:  StoredProcedure `GetPopularTags`    Script Date: 04/08/2020 17:26:42 ******/
+
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE  `GetPopularTags`()
+BEGIN
+
+	SELECT `tag`.`id`, `tag`.`tag`, COUNT(*) as `count` FROM `tag` INNER JOIN `matcontag` on `tag`.`Id` = `matcontag`.`TagId` GROUP BY `tag`.`Id` ORDER BY `count` DESC LIMIT 8;
 
 END$$
 
