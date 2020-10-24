@@ -10,6 +10,8 @@ const bformat = require('bunyan-format')
 const Ajv = require('ajv');
 const emailValidator = require("email-validator");
 const defaults = require('defaults-deep');
+const multer = require('multer');
+const upload = multer({dest: __dirname + '/uploads'});
 
 const ItemNotFoundError = require('./errors/item-not-found-error.js');
 const SchemaValidationError = require('./errors/schema-validation-error.js');
@@ -123,6 +125,17 @@ function timeToStr(t) {
     }
     return t + " minutes";
 }
+
+api.post('/upload', upload.single('photo'), (req, res, next) => {
+    if(req.file) {
+        res.json(req.file);
+    }
+    else {
+        next(new GenericError({
+            description: "You must include an image to the request"
+        }));
+    }
+});
 
 
 api.get("/bread", (req, res) => {
