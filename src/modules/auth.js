@@ -78,7 +78,7 @@ class Auth extends BasicModule {
         });
     }
 
-    login(email, password, res, callback) {
+    login(email, password, req, res, callback) {
         var self = this;
         setTimeout(() => {
             this.services.db.getUserByEmail(email, (err, user) => {
@@ -261,7 +261,7 @@ class Auth extends BasicModule {
                 resp.cookie('auth', tokenStr, {
                     secure: self.config.secure,
                     httpOnly: true,
-                    maxAge: self.config.expiration,
+                    maxAge: self.config.authCookieExpiration,
                     sameSite: "strict"
                 });
                 callback(null, auth);

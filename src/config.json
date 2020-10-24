@@ -23,7 +23,8 @@
         "xsrf-cookie-name": "XSRF-TOKEN",
         "xsrf-header-name": "X-XSRF-TOKEN",
         "xsrf-cookie-len": 10,
-        "cacheExpiration": 86400000
+        "cacheExpiration": 86400000,
+        "authCookieExpiration": 7776000000
     },
     "logger": {
         "name": "bread",

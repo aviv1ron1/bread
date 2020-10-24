@@ -2,12 +2,25 @@
 
 const IMG_SIZE = 256;
 
-angular.module('app').controller('newRecipeController', function($scope, $timeout, $interval, $location) {
+angular.module('app').controller('newRecipeController', function($scope, $timeout, $interval, $http, $location, popularTags) {
 
     $scope.d = {
         imageUploaded: null,
-        zoom: 10
+        zoom: 10,
+        recipe: {
+            labels: []
+        },
+        suggestedLabels: popularTags
     };
+
+    $scope.addLabel = (lbl, index) => {
+        $scope.d.suggestedLabels.splice(index, 1);
+        $scope.d.recipe.labels.push(lbl);
+    }
+
+    $scope.removeLabel = (lbl, index) => {
+        $scope.d.recipe.labels.splice(index, 1);
+    }
 
     $scope.clear = () => {
         $scope.stopZoom();
@@ -63,36 +76,36 @@ angular.module('app').controller('newRecipeController', function($scope, $timeou
     var doMove = (x, y) => {
         return () => {
             var shouldStop = false;
-            if($scope.d.sx <= 0 && x < 0) {
-            	shouldStop = true;
+            if ($scope.d.sx <= 0 && x < 0) {
+                shouldStop = true;
             }
-            if($scope.d.sx + $scope.d.sw >= $scope.d.img.width && x > 0) {
-            	shouldStop = true;
+            if ($scope.d.sx + $scope.d.sw >= $scope.d.img.width && x > 0) {
+                shouldStop = true;
             }
-            if($scope.d.sy <= 0 && y < 0) {
-            	shouldStop = true;
+            if ($scope.d.sy <= 0 && y < 0) {
+                shouldStop = true;
             }
-            if($scope.d.sy + $scope.d.sh >= $scope.d.img.height && y > 0) {
-            	shouldStop = true;
+            if ($scope.d.sy + $scope.d.sh >= $scope.d.img.height && y > 0) {
+                shouldStop = true;
             }
             if (shouldStop) {
                 return $timeout($scope.stopMove(), 1);
             }
             var ctx = clearCanvas();
-            if(x != 0) {
-            	$scope.d.sx += x*$scope.d.zoom;
+            if (x != 0) {
+                $scope.d.sx += x * $scope.d.zoom;
             }
-            if(y != 0) {
-				$scope.d.sy += y*$scope.d.zoom;
+            if (y != 0) {
+                $scope.d.sy += y * $scope.d.zoom;
             }
             console.log($scope.d.sx, $scope.d.sy, $scope.d.sw, $scope.d.sh);
             ctx.drawImage($scope.d.img, $scope.d.sx, $scope.d.sy, $scope.d.sw, $scope.d.sh, 0, 0, IMG_SIZE, IMG_SIZE);
         }
     }
 
-    $scope.move = (x,y) => {
-    	doMove(x,y)();
-    	$scope.d.moveInterval = $interval(doMove(x,y), 200);
+    $scope.move = (x, y) => {
+        doMove(x, y)();
+        $scope.d.moveInterval = $interval(doMove(x, y), 200);
     }
 
     $scope.zoom = (dir) => {
@@ -154,6 +167,28 @@ angular.module('app').controller('newRecipeController', function($scope, $timeou
             }
         }, false)
         $scope.imgUploadForm.$$element[0].photo.click();
+    }
+
+    $scope.submit = () => {
+        var canvas = angular.element("#imgCanvas")[0];
+        canvas.toBlob(function(blob) {
+            console.log(blob);
+            $http.post("/api/blob", blob, {
+                    headers: {
+                        'Content-Type': undefined
+                    }
+                })
+                .then(function(response) {
+                    var data = response.data;
+                    var status = response.status;
+                    var statusText = response.statusText;
+                    var headers = response.headers;
+                    var config = response.config;
+                    console.log("Success", status);
+                }).catch(function(errorResponse) {
+                    console.error("Error", errorResponse);
+                });
+        })
     }
 
 });

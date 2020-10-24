@@ -10,8 +10,6 @@ const bformat = require('bunyan-format')
 const Ajv = require('ajv');
 const emailValidator = require("email-validator");
 const defaults = require('defaults-deep');
-const multer = require('multer');
-const upload = multer({dest: __dirname + '/uploads'});
 
 const ItemNotFoundError = require('./errors/item-not-found-error.js');
 const SchemaValidationError = require('./errors/schema-validation-error.js');
@@ -74,11 +72,12 @@ var app = express()
 app.use(express.json());
 //app.use(ipRateLimiter);
 app.use(cookieParser());
+app.use(services.auth.xsrf());
 app.use(services.auth.xsrfValidate());
 
 var api = express.Router();
 api.use((req, res, next) => {
-    services.logger.debug("*** express ***", req.method, req.originalUrl, "query:", req.query, "body:", req.body);
+    services.logger.debug("*** express ***", req.method, req.originalUrl, "query:", req.query, "body:", req.body, "headers:", JSON.stringify(req.headers));
     next();
 })
 
@@ -98,7 +97,7 @@ app.use(helmet({
         }
     }
 }));
-app.use(services.auth.xsrf());
+
 app.use(function(err, req, res, next) {
     services.logger.error("*** express ERROR ***", req.method, req.originalUrl, "query:", req.query, "body:", req.body, "error:", err);
     if (res.headersSent) {
@@ -126,15 +125,11 @@ function timeToStr(t) {
     return t + " minutes";
 }
 
-api.post('/upload', upload.single('photo'), (req, res, next) => {
-    if(req.file) {
-        res.json(req.file);
-    }
-    else {
-        next(new GenericError({
-            description: "You must include an image to the request"
-        }));
-    }
+api.post("/blob", (req, res, next) => {
+    req.pipe(fs.createWriteStream(path.join('./uploads', Date.now().toString() + '.png')));
+    req.on('end', () => {
+        res.json("ok")
+    })
 });
 
 
@@ -185,6 +180,16 @@ api.get("/bread/:breadType/weight", (req, res) => {
     }
 });
 
+api.get("/tags", (req, res, next) => {
+    services.db.getPopularTags((err, tags) => {
+        if (err) {
+            next(err);
+        } else {
+            res.json(tags);
+        }
+    })
+})
+
 login.get("/login", services.auth.isAuthenticated(), (req, res) => {
     res.status(200).json(req.user);
 });
@@ -193,7 +198,7 @@ login.post("/login", bruteForceRateLimiter, (req, res, next) => {
     if (nou.isNull(req.body.email) || nou.isNull(req.body.password)) {
         return res.status(400).json("missing required email and password");
     }
-    services.auth.login(req.body.email, req.body.password, res, (err, verified, user) => {
+    services.auth.login(req.body.email, req.body.password, req, res, (err, verified, user) => {
         if (err) {
             next(err);
         } else {
