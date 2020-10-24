@@ -130,18 +130,13 @@ app.config(['$routeProvider',
             })
             .when('/create', {
                 templateUrl: 'pages/new-recipe.html',
-                controller: "newRecipeController"
+                controller: "newRecipeController",
+                resolve: {
+                    popularTags: (tagsFactory, $route) => {
+                        return tagsFactory.query().$promise;
+                    }
+                }
             })
-            // .when('/ages', {
-            //     templateUrl: "pages/ages.html",
-            //     controller: "agesController",
-            //     reloadOnSearch: false,
-            //     resolve: {
-            //         data: function(hayalFactory, $route) {
-            //             return hayalFactory.ages().$promise;
-            //         }
-            //     }
-            // })
             .otherwise({
                 redirectTo: '/'
             });

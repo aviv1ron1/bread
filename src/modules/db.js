@@ -437,6 +437,18 @@ class Db extends BasicModule {
         })
     }
 
+    getPopularTags(callback) {
+        this.execute("GetPopularTags", {}, (err, tags) => {
+            if(err) {
+                return callback(new GenericError({
+                    log: "db.getPopularTags: error while executing",
+                    err: err
+                }));
+            }
+            callback(null, tags[0]);
+        })
+    }
+
     //basic generic crud --------------------------------------------------------------------
 
     execute(storedProcedure, inParams, callback) {
@@ -458,6 +470,7 @@ class Db extends BasicModule {
         self.logger.debug("query", query, params);
         this.connection.query(query, params, (err, results, fields) => {
             if (err) {
+                self.logger.error("query ERROR", query, params, err);
                 return callback(new GenericError({
                     err: err,
                     log: "error in db query",
