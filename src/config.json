@@ -1,0 +1,50 @@
+{
+    "main": {
+        "pre-register-expiration-days": 3,
+        "expiration-job-hours": 12,
+        "port": 8080
+    },
+    "firebase": {
+
+    },
+    "db": {
+        "endpoint": "localhost",
+        "port": 3306,
+        "connectionLimit": 10,
+        "db": "x"
+    },
+    "mailer": {
+        "host": "smtp.mailgun.org",
+        "port": 587,
+        "from": "bread@bread.com",
+        "test": false
+    },
+    "auth": {
+        "xsrf-cookie-name": "XSRF-TOKEN",
+        "xsrf-header-name": "X-XSRF-TOKEN",
+        "xsrf-cookie-len": 10,
+        "cacheExpiration": 86400000,
+        "authCookieExpiration": 7776000000
+    },
+    "logger": {
+        "name": "bread",
+        "level": "debug"
+    },
+    "password-policy": {
+        "minLength": 3,
+        "maxLength": 30,
+        "mustIncludeNumbers": false,
+        "mustIncludeChars": true,
+        "mustIncludeUpperCase": false,
+        "mustIncludeSpecial": false,
+        "maxRepeat": 3
+    },
+    "ip-rate-limiter": {
+        "limiter-type": "RateLimiterMemory",
+        "limiter-config": {
+            "points": 200,
+            "duration": 60,
+            "keyPrefix": "middleware"
+        }
+    }
+}

@@ -1,0 +1,25 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "title": "Review",
+    "type": "object",
+    "properties": {
+        "matconId": {
+            "type": "integer"
+        },
+        "userId": {
+            "type": "integer"
+        },
+        "score": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+        },
+        "content": {
+            "type": "string"
+        },
+        "timestamp": {
+            "type": "string"
+        }
+    },
+    "required": ["matconId", "userId", "score", "content"]
+}

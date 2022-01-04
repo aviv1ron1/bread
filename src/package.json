@@ -5,12 +5,29 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "author": "aviv1ron1@gmail.com",
   "license": "ISC",
   "dependencies": {
+    "@cloudant/cloudant": "^4.2.4",
+    "ajv": "^6.12.3",
+    "bunyan": "^1.8.14",
+    "bunyan-format": "^0.2.1",
+    "cookie-parser": "^1.4.5",
+    "csurf": "^1.11.0",
+    "defaults-deep": "^0.2.4",
+    "email-validator": "^2.0.4",
     "express": "^4.17.1",
-    "moment": "^2.24.0"
+    "helmet": "^4.1.1",
+    "lru-cache": "^6.0.0",
+    "moment": "^2.24.0",
+    "mysql": "^2.18.1",
+    "nodemailer": "^6.4.10",
+    "nou": "0.0.1",
+    "rate-limiter-flexible": "^2.1.10"
+  },
+  "devDependencies": {
+    "jest": "^26.1.0"
   }
 }

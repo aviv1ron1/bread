@@ -1,0 +1,92 @@
+<div class="container pt-4">
+	<div class="row">
+		<div class="col-md-4 col-xl-3 p-2">
+			<div class="bread-img mx-auto text-center" ng-show="d.imageUploaded">
+				<canvas width="256" height="256" id="imgCanvas"></canvas>
+				<div class="btn-group" role="group" aria-label="zoom">
+					<button type="button" class="btn btn-outline-secondary btn-sm" ng-mousedown="zoom(1)" ng-mouseup="stopZoom()" ng-disabled="d.sw < 20">
+					<svg class="icon mb-1" fill="currentColor">
+						<use xlink:href="icons/bootstrap-icons.svg#zoom-in"/>
+					</svg>
+					</button>
+					<button type="button" class="btn btn-outline-secondary btn-sm" ng-mousedown="zoom(-1)" ng-mouseup="stopZoom()">
+					<svg class="icon mb-1" fill="currentColor">
+						<use xlink:href="icons/bootstrap-icons.svg#zoom-out"/>
+					</svg>
+					</button>
+				</div>
+				<div class="btn-group" role="group" aria-label="move">
+					<button type="button" class="btn btn-outline-secondary btn-sm" ng-mousedown="move(-1,0)" ng-mouseup="stopMove()">
+					<svg class="icon mb-1" fill="currentColor">
+						<use xlink:href="icons/bootstrap-icons.svg#arrow-left-short"/>
+					</svg>
+					</button>
+					<button type="button" class="btn btn-outline-secondary btn-sm" ng-mousedown="move(0,-1)" ng-mouseup="stopMove()">
+					<svg class="icon mb-1" fill="currentColor">
+						<use xlink:href="icons/bootstrap-icons.svg#arrow-up-short"/>
+					</svg>
+					</button>
+					<button type="button" class="btn btn-outline-secondary btn-sm" ng-mousedown="move(0,1)" ng-mouseup="stopMove()">
+					<svg class="icon mb-1" fill="currentColor">
+						<use xlink:href="icons/bootstrap-icons.svg#arrow-down-short"/>
+					</svg>
+					</button>
+					<button type="button" class="btn btn-outline-secondary btn-sm" ng-mousedown="move(1,0)" ng-mouseup="stopMove()">
+					<svg class="icon mb-1" fill="currentColor">
+						<use xlink:href="icons/bootstrap-icons.svg#arrow-right-short"/>
+					</svg>
+					</button>
+				</div>
+				<button type="button" class="btn btn-outline-secondary btn-sm" ng-click="clear()">
+				<svg class="icon mb-1" fill="currentColor">
+					<use xlink:href="icons/bootstrap-icons.svg#file-earmark-x"/>
+				</svg>
+				</button>
+			</div>
+			<div class="bread-img mx-auto text-center" ng-hide="d.imageUploaded">
+				<img src="/icons/cloud-upload.svg" class="rounded-lg border p-5 bread-img img-upload" ng-click="uploadPicture()">
+				<a href ng-click="uploadPicture()">upload a picture for your recipe</a>
+				<form name="imgUploadForm" action="/api/upload" method="post" enctype="multipart/form-data" hidden="true">
+					<input type="file" accept="image/*" name="photo">
+				</form>
+			</div>
+		</div>
+		<div class="col-md-8 col-xl-9 p-2">
+			<form>
+				<div class="form-group">
+					<label for="recipeName">Labels</label>
+					<input id="recipeName" class="form-control form-control-lg" type="text" placeholder="recipe name - a title for your recipe" ng-model="d.recipe.name">
+				</div>
+				<div class="form-group">
+					<label for="formLabels">Labels</label>
+					<input type="text" class="form-control" id="formLabels" placeholder="enter labels to help others find your recipe" ng-model="d.labelSearch">
+				</div>
+				<label>Your labels:</label>
+					<div class="btn-toolbar" role="toolbar" >
+						<div class="btn-group btn-group-sm m-1" role="group" ng-repeat="lbl in d.recipe.labels">
+							<button type="button" class="btn btn-outline-info" disabled="true">{{lbl.tag}}</button>
+							<button type="button" class="btn btn-outline-info" ng-click="removeLabel(lbl, $index)">
+								<svg class="icon mb-1 text-danger" fill="currentColor">
+									<use xlink:href="icons/bootstrap-icons.svg#x-circle"/>
+								</svg>
+							</button>
+						</div>
+					</div>
+				<div>
+					<label>Suggestions:</label>
+					<div class="btn-toolbar" role="toolbar" >
+						<div class="btn-group btn-group-sm m-1" role="group" ng-repeat="lbl in d.suggestedLabels">
+							<button type="button" class="btn btn-outline-info" disabled="true">{{lbl.tag}}</button>
+							<button type="button" class="btn btn-info" ng-click="addLabel(lbl, $index)">
+							<svg class="icon mb-1" fill="currentColor">
+								<use xlink:href="icons/bootstrap-icons.svg#plus"/>
+							</svg>
+							</button>
+						</div>
+					</div>
+				</div>
+				<button type="button" class="btn btn-primary" ng-click="submit()">submit</button>
+			</form>
+		</div>
+	</div>
+</div>

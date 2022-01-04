@@ -1,0 +1,46 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "title": "User",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "string"
+        },
+        "email": {
+            "type": "string"
+        },
+        "name": {
+            "type": "string"
+        },
+        "joined": {
+            "type": "string"
+        },
+        "password": {
+            "type": "object",
+            "properties": {
+                "salt": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "keyIterations": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "keyLength": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "digest": {
+                    "type": "string"
+                },
+                "created": {
+                    "type": "string"
+                }
+            },
+           "required": ["salt", "key", "keyIterations", "keyLength", "digest", "created"] 
+        }
+    },
+    "required": ["id", "email", "name", "joined", "password"]
+}

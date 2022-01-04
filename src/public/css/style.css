@@ -1,0 +1,90 @@
+.clickable {
+	cursor: pointer;
+}
+
+.aweights {
+	background-color: #eef0d6;
+}
+
+
+.container-md {
+  margin-right: auto;
+  margin-left: auto;
+  max-width: 660px; 
+}
+
+.picback {
+  background: url('/img/back.jpg') no-repeat center center fixed;
+  height: 100vh; 
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.main {
+  margin-top: 4em;
+}
+
+.pb {
+  width: 45%;
+}
+
+.icon-big {
+  width: 64px;
+  height: 64px;
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+
+.bread-img {
+  width: 256px;
+  height: 256px;
+}
+
+.img-upload:hover {
+  background-color: #007bff!important;
+  cursor: pointer;
+}
+
+.img-upload:active {
+  background-color: #005bdf!important;
+  cursor: pointer;
+}
+
+
+@keyframes wiggle {
+    0% { transform: translateX(2px); }
+   25% { transform: translateX(0); }
+   50% { transform: translateX(-4px); }
+   75% { transform: translateX(0); }
+  100% { transform: translateX(2px); }
+}
+
+.error-add, .error-add-active {
+  animation: wiggle 0.2s linear 0s infinite;
+}
+
+
+
+@keyframes turn {
+    0% { transform: translateX(0); }
+   25% { transform: translateX(0); }
+   50% { transform: translateX(-4px); }
+   75% { transform: translateX(0); }
+  100% { transform: translateX(2px); }
+}
+
+@keyframes spin { 
+  0% { transform: rotate(0deg);  }
+  25% { transform: rotate(360deg);  } 
+  50% { transform: rotate(360deg);  }
+  100% { transform: rotate(360deg);  } 
+}
+
+.turnarround {
+  animation:spin 4s linear infinite;
+}

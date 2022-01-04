@@ -1,0 +1,13 @@
+<div class="container">
+  <div class="row row-cols-3">
+  	<div class="col" ng-repeat="bread in root.data">
+  		<div class="card clickable my-2" ng-click="breadClicked(bread)">
+  			<img ng-src="img/{{bread.img}}" class="card-img-top">
+  			<div class="card-body">
+	    		<h5 class="card-title">{{bread.name}}</h5>
+    			<p class="card-text">{{bread.description}}</p>
+  			</div>
+		</div>
+  	</div>
+  </div>
+</div>

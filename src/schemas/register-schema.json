@@ -1,0 +1,19 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "title": "Register",
+    "type": "object",
+    "properties": {
+        "email": {
+            "type": "string",
+            "maxLength": 320
+        },
+        "name": {
+            "type": "string",
+            "maxLength": 30
+        },
+        "password": {
+            "type": "string"
+        }
+    },
+    "required": ["email", "name", "password"]
+}
